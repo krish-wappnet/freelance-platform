@@ -1,0 +1,326 @@
+import { getCurrentUser, hasRole } from '@/lib/auth';
+import prisma from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server';
+import { UserRole, ProposalStatus } from '@prisma/client';
+import { z } from 'zod';
+
+const contractSchema = z.object({
+  proposalId: z.string().uuid(),
+  terms: z.string().min(10),
+  totalAmount: z.number().positive(),
+  milestones: z.array(
+    z.object({
+      title: z.string().min(2),
+      description: z.string().min(10),
+      amount: z.number().positive(),
+      dueDate: z.string().optional(),
+    })
+  ).min(1),
+});
+
+/**
+ * @swagger
+ * /api/contracts:
+ *   get:
+ *     summary: Get contracts
+ *     description: Returns contracts based on user role and filters
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: projectId
+ *         schema:
+ *           type: string
+ *         description: Filter by project ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PROPOSED, APPROVED, IN_PROGRESS, COMPLETED, CANCELLED, DISPUTED]
+ *         description: Filter by contract status
+ *     responses:
+ *       200:
+ *         description: List of contracts
+ *       401:
+ *         description: Not authenticated
+ *       500:
+ *         description: Internal server error
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+    
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+    
+    const { searchParams } = new URL(request.url);
+    const projectId = searchParams.get('projectId');
+    const status = searchParams.get('status');
+    
+    const where: any = {};
+    
+    // Filter by project if provided
+    if (projectId) {
+      where.projectId = projectId;
+    }
+    
+    // Filter by status if provided
+    if (status) {
+      where.status = status;
+    }
+    
+    // Filter by user role
+    if (user.role === UserRole.FREELANCER) {
+      where.proposal = {
+        freelancerId: user.id,
+      };
+    } else if (user.role === UserRole.CLIENT) {
+      where.project = {
+        clientId: user.id,
+      };
+    }
+    
+    const contracts = await prisma.contract.findMany({
+      where,
+      include: {
+        project: {
+          select: {
+            id: true,
+            title: true,
+            clientId: true,
+            client: {
+              select: {
+                id: true,
+                name: true,
+                avatar: true,
+              },
+            },
+          },
+        },
+        proposal: {
+          select: {
+            id: true,
+            freelancerId: true,
+            freelancer: {
+              select: {
+                id: true,
+                name: true,
+                avatar: true,
+              },
+            },
+          },
+        },
+        milestones: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            amount: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+    
+    return NextResponse.json({ contracts }, { status: 200 });
+  } catch (error) {
+    console.error('Error fetching contracts:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * @swagger
+ * /api/contracts:
+ *   post:
+ *     summary: Create a new contract
+ *     description: Creates a new contract based on a proposal
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - proposalId
+ *               - terms
+ *               - totalAmount
+ *               - milestones
+ *             properties:
+ *               proposalId:
+ *                 type: string
+ *                 format: uuid
+ *               terms:
+ *                 type: string
+ *                 minLength: 10
+ *               totalAmount:
+ *                 type: number
+ *                 minimum: 0
+ *               milestones:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - title
+ *                     - description
+ *                     - amount
+ *                   properties:
+ *                     title:
+ *                       type: string
+ *                     description:
+ *                       type: string
+ *                     amount:
+ *                       type: number
+ *                     dueDate:
+ *                       type: string
+ *                       format: date-time
+ *     responses:
+ *       201:
+ *         description: Contract created successfully
+ *       400:
+ *         description: Invalid request data
+ *       401:
+ *         description: Not authenticated or unauthorized
+ *       404:
+ *         description: Proposal not found
+ *       409:
+ *         description: Contract already exists
+ *       500:
+ *         description: Internal server error
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+    
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+    
+    if (!hasRole(user, UserRole.CLIENT, UserRole.ADMIN)) {
+      return NextResponse.json(
+        { error: 'Only clients can create contracts' },
+        { status: 401 }
+      );
+    }
+    
+    const body = await request.json();
+    
+    // Validate request body
+    const result = contractSchema.safeParse(body);
+    if (!result.success) {
+      return NextResponse.json({ error: result.error.errors }, { status: 400 });
+    }
+    
+    const { proposalId, terms, totalAmount, milestones } = result.data;
+    
+    // Check if proposal exists
+    const proposal = await prisma.proposal.findUnique({
+      where: { id: proposalId },
+      include: {
+        project: true,
+      },
+    });
+    
+    if (!proposal) {
+      return NextResponse.json(
+        { error: 'Proposal not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Check if user owns the project
+    if (
+      proposal.project.clientId !== user.id &&
+      user.role !== UserRole.ADMIN
+    ) {
+      return NextResponse.json(
+        { error: 'You can only create contracts for your own projects' },
+        { status: 401 }
+      );
+    }
+    
+    // Check if contract already exists
+    const existingContract = await prisma.contract.findUnique({
+      where: { proposalId },
+    });
+    
+    if (existingContract) {
+      return NextResponse.json(
+        { error: 'A contract already exists for this proposal' },
+        { status: 409 }
+      );
+    }
+    
+    // Check milestone amounts total
+    const milestoneTotalAmount = milestones.reduce(
+      (total, milestone) => total + milestone.amount,
+      0
+    );
+    
+    if (Math.abs(milestoneTotalAmount - totalAmount) > 0.01) {
+      return NextResponse.json(
+        { error: 'The sum of milestone amounts must equal the total contract amount' },
+        { status: 400 }
+      );
+    }
+    
+    // Create contract with milestones in a transaction
+    const contract = await prisma.₹transaction(async (tx) => {
+      // Create contract
+      const newContract = await tx.contract.create({
+        data: {
+          proposalId,
+          projectId: proposal.projectId,
+          terms,
+          totalAmount,
+        },
+      });
+      
+      // Create milestones
+      for (const milestone of milestones) {
+        await tx.milestone.create({
+          data: {
+            contractId: newContract.id,
+            title: milestone.title,
+            description: milestone.description,
+            amount: milestone.amount,
+            dueDate: milestone.dueDate ? new Date(milestone.dueDate) : undefined,
+          },
+        });
+      }
+      
+      // Update proposal status
+      await tx.proposal.update({
+        where: { id: proposalId },
+        data: { status: ProposalStatus.ACCEPTED },
+      });
+      
+      return newContract;
+    });
+    
+    return NextResponse.json(
+      { message: 'Contract created successfully', contract },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error('Error creating contract:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

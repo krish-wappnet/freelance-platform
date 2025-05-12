@@ -1,0 +1,178 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CLIENT
+  FREELANCER
+  ADMIN
+}
+
+enum ProjectStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum BidStatus {
+  PENDING
+  SHORTLISTED
+  ACCEPTED
+  REJECTED
+}
+
+enum ContractStage {
+  PROPOSAL
+  APPROVAL
+  PAYMENT
+  REVIEW
+  COMPLETED
+  CANCELLED
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  PAYMENT_REQUESTED
+  PAID
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  name          String
+  role          UserRole
+  bio           String?
+  avatar        String?
+  location      String?
+  skills        String[]
+  hourlyRate    Float?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Client relations
+  postedProjects      Project[]       @relation("ClientToProject")
+  
+  // Freelancer relations
+  bids                Bid[]
+  contractsAsFreelancer Contract[] @relation("FreelancerToContract")
+  
+  // Common relations
+  contractsAsClient   Contract[] @relation("ClientToContract")
+  sentMessages        Message[]  @relation("SenderToMessage")
+  receivedMessages    Message[]  @relation("ReceiverToMessage")
+
+  @@map("users")
+}
+
+model Project {
+  id              String        @id @default(uuid())
+  title           String
+  description     String
+  budget          Float
+  deadline        DateTime?
+  category        String
+  skills          String[]
+  status          ProjectStatus @default(OPEN)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  clientId        String
+  client          User          @relation("ClientToProject", fields: [clientId], references: [id])
+  bids            Bid[]
+  contracts       Contract[]
+  milestones      Milestone[]
+
+  @@map("projects")
+}
+
+model Bid {
+  id              String      @id @default(uuid())
+  amount          Float
+  deliveryTime    Int         // In days
+  coverLetter     String
+  status          BidStatus   @default(PENDING)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  // Relations
+  projectId       String
+  project         Project     @relation(fields: [projectId], references: [id])
+  freelancerId    String
+  freelancer      User        @relation(fields: [freelancerId], references: [id])
+  contract        Contract?
+
+  @@map("bids")
+}
+
+model Contract {
+  id              String        @id @default(uuid())
+  title           String
+  description     String
+  amount          Float
+  stage           ContractStage @default(PROPOSAL)
+  startDate       DateTime?
+  endDate         DateTime?
+  termsAccepted   Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  projectId       String
+  project         Project       @relation(fields: [projectId], references: [id])
+  clientId        String
+  client          User          @relation("ClientToContract", fields: [clientId], references: [id])
+  freelancerId    String
+  freelancer      User          @relation("FreelancerToContract", fields: [freelancerId], references: [id])
+  bidId           String?       @unique
+  bid             Bid?          @relation(fields: [bidId], references: [id])
+  milestones      Milestone[]
+  
+  @@map("contracts")
+}
+
+model Milestone {
+  id              String           @id @default(uuid())
+  title           String
+  description     String
+  amount          Float
+  dueDate         DateTime?
+  status          MilestoneStatus  @default(PENDING)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  // Relations
+  contractId      String
+  contract        Contract         @relation(fields: [contractId], references: [id])
+  projectId       String
+  project         Project          @relation(fields: [projectId], references: [id])
+
+  @@map("milestones")
+}
+
+model Message {
+  id              String    @id @default(uuid())
+  content         String
+  isRead          Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  
+  // Relations
+  senderId        String
+  sender          User      @relation("SenderToMessage", fields: [senderId], references: [id])
+  receiverId      String
+  receiver        User      @relation("ReceiverToMessage", fields: [receiverId], references: [id])
+
+  @@map("messages")
+}
