@@ -27,7 +27,7 @@ export default function ProjectFormClient({ onSubmit }: { onSubmit: (data: FormD
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full max-w-2xl mx-auto h-[calc(100vh-200px)] overflow-y-auto">
       <CardHeader className="space-y-2">
         <CardTitle className="text-2xl font-bold">Create New Project</CardTitle>
         <p className="text-muted-foreground">Fill in the details to create a new project</p>
@@ -100,6 +100,81 @@ export default function ProjectFormClient({ onSubmit }: { onSubmit: (data: FormD
               className="w-full"
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Key Features</Label>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                'AUTHENTICATION', 'TASK_MANAGEMENT', 'FILTERING',
+                'RESPONSIVE_UI', 'REST_API', 'DOCUMENTATION',
+                'SOURCE_CODE', 'README', 'DEPLOYMENT_INSTRUCTIONS',
+                'LIVE_DEMO'
+              ].map((feature) => (
+                <div key={feature} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={feature}
+                    name="features"
+                    value={feature}
+                    className="rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <label htmlFor={feature} className="text-sm">
+                    {feature.replace('_', ' ')}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Project Type</Label>
+            <select
+              id="type"
+              name="type"
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              defaultValue="ONE_TIME"
+            >
+              <option value="ONE_TIME">One-time Project</option>
+              <option value="CONTINUOUS">Continuous Project</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Required Experience Level</Label>
+            <select
+              id="experienceLevel"
+              name="experienceLevel"
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              defaultValue="INTERMEDIATE"
+            >
+              <option value="BEGINNER">Beginner</option>
+              <option value="INTERMEDIATE">Intermediate</option>
+              <option value="EXPERT">Expert</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Deliverables</Label>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                'Source Code', 'Documentation', 'Deployment Instructions',
+                'Live Demo'
+              ].map((deliverable) => (
+                <div key={deliverable} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={deliverable}
+                    name="deliverables"
+                    value={deliverable}
+                    className="rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <label htmlFor={deliverable} className="text-sm">
+                    {deliverable}
+                  </label>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="flex justify-end">

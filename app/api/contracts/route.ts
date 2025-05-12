@@ -1,7 +1,7 @@
 import { getCurrentUser, hasRole } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import { UserRole, ProposalStatus } from '@prisma/client';
+import { UserRole, ContractStage } from '@prisma/client';
 import { z } from 'zod';
 
 const contractSchema = z.object({
@@ -68,20 +68,16 @@ export async function GET(request: NextRequest) {
       where.projectId = projectId;
     }
     
-    // Filter by status if provided
+    // Filter by stage if provided
     if (status) {
-      where.status = status;
+      where.stage = status;
     }
     
     // Filter by user role
     if (user.role === UserRole.FREELANCER) {
-      where.proposal = {
-        freelancerId: user.id,
-      };
+      where.freelancerId = user.id;
     } else if (user.role === UserRole.CLIENT) {
-      where.project = {
-        clientId: user.id,
-      };
+      where.clientId = user.id;
     }
     
     const contracts = await prisma.contract.findMany({
@@ -101,15 +97,21 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-        proposal: {
+        bid: {
           select: {
             id: true,
-            freelancerId: true,
+            amount: true,
+            deliveryTime: true,
+            coverLetter: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
             freelancer: {
               select: {
                 id: true,
                 name: true,
                 avatar: true,
+                bio: true,
               },
             },
           },
@@ -122,6 +124,7 @@ export async function GET(request: NextRequest) {
             amount: true,
           },
         },
+
       },
       orderBy: {
         createdAt: 'desc',
@@ -225,26 +228,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error.errors }, { status: 400 });
     }
     
-    const { proposalId, terms, totalAmount, milestones } = result.data;
+    const { proposalId, terms, milestones } = result.data;
     
-    // Check if proposal exists
-    const proposal = await prisma.proposal.findUnique({
+    // Check if bid exists
+    const bid = await prisma.bid.findUnique({
       where: { id: proposalId },
       include: {
         project: true,
+        freelancer: true,
       },
     });
-    
-    if (!proposal) {
+
+    if (!bid) {
       return NextResponse.json(
-        { error: 'Proposal not found' },
+        { error: 'Bid not found' },
         { status: 404 }
       );
     }
     
+
+    
     // Check if user owns the project
     if (
-      proposal.project.clientId !== user.id &&
+      bid.project.clientId !== user.id &&
       user.role !== UserRole.ADMIN
     ) {
       return NextResponse.json(
@@ -255,7 +261,7 @@ export async function POST(request: NextRequest) {
     
     // Check if contract already exists
     const existingContract = await prisma.contract.findUnique({
-      where: { proposalId },
+      where: { bidId: proposalId },
     });
     
     if (existingContract) {
@@ -271,7 +277,7 @@ export async function POST(request: NextRequest) {
       0
     );
     
-    if (Math.abs(milestoneTotalAmount - totalAmount) > 0.01) {
+    if (Math.abs(milestoneTotalAmount - bid.amount) > 0.01) {
       return NextResponse.json(
         { error: 'The sum of milestone amounts must equal the total contract amount' },
         { status: 400 }
@@ -279,14 +285,18 @@ export async function POST(request: NextRequest) {
     }
     
     // Create contract with milestones in a transaction
-    const contract = await prisma.₹transaction(async (tx) => {
+    const contract = await prisma.$transaction(async (tx) => {
       // Create contract
       const newContract = await tx.contract.create({
         data: {
-          proposalId,
-          projectId: proposal.projectId,
-          terms,
-          totalAmount,
+          bidId: proposalId,
+          projectId: bid.projectId,
+          clientId: bid.project.clientId,
+          freelancerId: bid.freelancerId,
+          title: bid.project.title,
+          description: bid.project.description,
+          amount: bid.amount,
+          stage: ContractStage.PROPOSAL,
         },
       });
       
@@ -295,6 +305,7 @@ export async function POST(request: NextRequest) {
         await tx.milestone.create({
           data: {
             contractId: newContract.id,
+            projectId: bid.projectId,
             title: milestone.title,
             description: milestone.description,
             amount: milestone.amount,
@@ -303,11 +314,7 @@ export async function POST(request: NextRequest) {
         });
       }
       
-      // Update proposal status
-      await tx.proposal.update({
-        where: { id: proposalId },
-        data: { status: ProposalStatus.ACCEPTED },
-      });
+
       
       return newContract;
     });

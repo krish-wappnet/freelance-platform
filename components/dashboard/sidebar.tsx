@@ -64,83 +64,43 @@ export default function Sidebar({ user, role }: SidebarProps) {
   }, []);
 
   // Generate the appropriate nav items based on user role
-  const clientNavItems: NavItem[] = [
+  const navItems: NavItem[] = [
     {
       title: 'Dashboard',
-      href: '/client/dashboard',
+      href: role === 'CLIENT' ? '/client/dashboard' : '/freelancer/dashboard',
       icon: <LayoutDashboard className="h-5 w-5" />
     },
     {
-      title: 'My Projects',
-      href: '/client/projects',
+      title: 'Projects',
+      href: role === 'CLIENT' ? '/client/projects' : '/freelancer/projects',
       icon: <Briefcase className="h-5 w-5" />
     },
     {
-      title: 'Received Bids',
-      href: '/client/bids',
+      title: 'Bids',
+      href: role === 'CLIENT' ? '/client/bids' : '/freelancer/bids',
       icon: <FileText className="h-5 w-5" />
     },
     {
-      title: 'Active Contracts',
-      href: '/client/contracts',
+      title: 'Contracts',
+      href: role === 'CLIENT' ? '/client/contracts' : '/freelancer/contracts',
       icon: <CreditCard className="h-5 w-5" />
     },
     {
       title: 'Messages',
-      href: '/client/messages',
+      href: role === 'CLIENT' ? '/client/messages' : '/freelancer/messages',
       icon: <MessageSquare className="h-5 w-5" />
     },
     {
       title: 'Settings',
-      href: '/client/settings',
+      href: role === 'CLIENT' ? '/client/settings' : '/freelancer/settings',
       icon: <Settings className="h-5 w-5" />
     },
     {
       title: 'Help',
-      href: '/client/help',
+      href: role === 'CLIENT' ? '/client/help' : '/freelancer/help',
       icon: <HelpCircle className="h-5 w-5" />
     }
   ];
-
-  const freelancerNavItems: NavItem[] = [
-    {
-      title: 'Dashboard',
-      href: '/freelancer/dashboard',
-      icon: <LayoutDashboard className="h-5 w-5" />
-    },
-    {
-      title: 'Find Projects',
-      href: '/projects',
-      icon: <Briefcase className="h-5 w-5" />
-    },
-    {
-      title: 'My Bids',
-      href: '/freelancer/bids',
-      icon: <FileText className="h-5 w-5" />
-    },
-    {
-      title: 'Active Contracts',
-      href: '/freelancer/contracts',
-      icon: <CreditCard className="h-5 w-5" />
-    },
-    {
-      title: 'Messages',
-      href: '/freelancer/messages',
-      icon: <MessageSquare className="h-5 w-5" />
-    },
-    {
-      title: 'Settings',
-      href: '/freelancer/settings',
-      icon: <Settings className="h-5 w-5" />
-    },
-    {
-      title: 'Help',
-      href: '/freelancer/help',
-      icon: <HelpCircle className="h-5 w-5" />
-    }
-  ];
-
-  const navItems = role === 'CLIENT' ? clientNavItems : freelancerNavItems;
 
   const bottomNavItems: NavItem[] = [
     {
@@ -222,7 +182,7 @@ export default function Sidebar({ user, role }: SidebarProps) {
         >
           <Avatar className="h-8 w-8">
             <AvatarImage src={user.avatar || undefined} alt={user.name} />
-            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+            <AvatarFallback>{user.name ? user.name.charAt(0) : 'U'}</AvatarFallback>
           </Avatar>
           {!isCollapsed && (
             <div className="flex flex-col">
@@ -268,7 +228,7 @@ export default function Sidebar({ user, role }: SidebarProps) {
             
             <Avatar className="h-8 w-8">
               <AvatarImage src={user.avatar || undefined} alt={user.name} />
-              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+              <AvatarFallback>{user.name ? user.name.charAt(0) : 'U'}</AvatarFallback>
             </Avatar>
           </div>
         </div>

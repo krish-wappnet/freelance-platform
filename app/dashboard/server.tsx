@@ -41,8 +41,21 @@ export async function getDashboardData() {
           where: {
             freelancerId: user.id,
           },
+          include: {
+            freelancer: {
+              select: {
+                name: true,
+                avatar: true,
+              },
+            },
+          },
         },
-        contracts: true,
+        contracts: {
+          include: {
+            bid: true,
+            milestones: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -68,7 +81,11 @@ export async function getDashboardData() {
             },
           },
         },
-        milestones: true,
+        milestones: {
+          orderBy: {
+            dueDate: 'asc',
+          },
+        },
       },
       orderBy: {
         updatedAt: 'desc',

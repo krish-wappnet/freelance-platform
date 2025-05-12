@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -39,8 +38,6 @@ export default async function ProjectsPage({
 }: {
   searchParams: { category?: string; skill?: string; q?: string };
 }) {
-  const user = await getCurrentUser();
-  
   // Build filter conditions
   const where: any = {
     status: 'OPEN',

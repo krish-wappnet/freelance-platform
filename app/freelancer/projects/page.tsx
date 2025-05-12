@@ -1,13 +1,12 @@
 import { redirect } from 'next/navigation';
 import { hasRole } from '@/lib/auth';
 import { UserRole } from '@prisma/client';
-import DashboardLayout from '@/app/dashboard/layout';
-import { getDashboardData } from '@/app/dashboard/server';
-import DashboardContent from '@/components/dashboard/content';
-import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import FreelancerProjectList from '@/app/client/components/projects/FreelancerProjectList';
+import Sidebar from '@/components/dashboard/sidebar';
 
-export default async function FreelancerDashboard() {
+export default async function FreelancerProjects() {
   const user = await getCurrentUser();
 
   if (!user || !hasRole(user, UserRole.FREELANCER)) {
@@ -71,20 +70,17 @@ export default async function FreelancerDashboard() {
     id: project.id.toString()
   }));
 
-  const { contracts, stats } = await getDashboardData();
-
-  if (!user) {
-    redirect('/login');
-  }
+  const activePath = '/freelancer/projects';
 
   return (
-    <DashboardLayout role="FREELANCER">
-      <DashboardContent 
-        projects={cleanProjects} 
-        contracts={contracts} 
-        stats={stats} 
-        role="FREELANCER" 
-      />
-    </DashboardLayout>
+    <div className="flex h-screen">
+      <Sidebar user={user} role="FREELANCER" activePath={activePath} />
+      <div className="flex-1 p-8 ml-64">
+        <div className="container">
+          <FreelancerProjectList projects={cleanProjects} />
+        </div>
+      </div>
+    </div>
   );
 }
+

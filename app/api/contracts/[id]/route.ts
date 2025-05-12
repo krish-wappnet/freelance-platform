@@ -1,19 +1,12 @@
 import { getCurrentUser, hasRole } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import { ContractStatus, UserRole } from '@prisma/client';
+import { ContractStage, UserRole } from '@prisma/client';
 import { z } from 'zod';
 
 const updateContractSchema = z.object({
   terms: z.string().min(10).optional(),
-  status: z.enum([
-    'PROPOSED',
-    'APPROVED',
-    'IN_PROGRESS',
-    'COMPLETED',
-    'CANCELLED',
-    'DISPUTED',
-  ]).optional(),
+  status: z.nativeEnum(ContractStage).optional(),
 });
 
 /**
@@ -63,24 +56,43 @@ export async function GET(
             id: true,
             title: true,
             description: true,
-            clientId: true,
+            budget: true,
+            deadline: true,
             status: true,
+            clientId: true,
             client: {
               select: {
                 id: true,
                 name: true,
                 avatar: true,
                 email: true,
-              },
-            },
-          },
+              }
+            }
+          }
         },
-        proposal: {
+        client: {
           select: {
             id: true,
-            freelancerId: true,
-            proposedBudget: true,
-            estimatedDays: true,
+            name: true,
+            avatar: true,
+            email: true,
+          }
+        },
+        freelancer: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+            email: true,
+            bio: true,
+          }
+        },
+        bid: {
+          select: {
+            id: true,
+            amount: true,
+            deliveryTime: true,
+            coverLetter: true,
             freelancer: {
               select: {
                 id: true,
@@ -88,24 +100,16 @@ export async function GET(
                 avatar: true,
                 email: true,
                 bio: true,
-              },
-            },
-          },
+              }
+            }
+          }
         },
         milestones: {
           orderBy: {
             createdAt: 'asc',
           },
-          include: {
-            payments: true,
-          },
-        },
-        payments: {
-          orderBy: {
-            createdAt: 'desc',
-          },
-        },
-      },
+        }
+      }
     });
     
     if (!contract) {
@@ -115,10 +119,27 @@ export async function GET(
       );
     }
     
+    const isClient = user.id === contract.clientId;
+    const isFreelancer = user.id === contract.freelancerId;
+
+    if (isClient && !hasRole(user, 'CLIENT')) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    if (isFreelancer && !hasRole(user, 'FREELANCER')) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+    
     // Check if user is authorized to view this contract
     if (
-      contract.proposal.freelancerId !== user.id &&
-      contract.project.clientId !== user.id &&
+      contract.freelancerId !== user.id &&
+      contract.clientId !== user.id &&
       user.role !== UserRole.ADMIN
     ) {
       return NextResponse.json(
@@ -126,6 +147,8 @@ export async function GET(
         { status: 401 }
       );
     }
+    
+
     
     return NextResponse.json({ contract }, { status: 200 });
   } catch (error) {
@@ -164,7 +187,7 @@ export async function GET(
  *                 minLength: 10
  *               status:
  *                 type: string
- *                 enum: [PROPOSED, APPROVED, IN_PROGRESS, COMPLETED, CANCELLED, DISPUTED]
+ *                 enum: [PROPOSAL, APPROVAL, PAYMENT, REVIEW, COMPLETED, CANCELLED]
  *     responses:
  *       200:
  *         description: Contract updated successfully
@@ -194,8 +217,65 @@ export async function PUT(
     const contract = await prisma.contract.findUnique({
       where: { id: params.id },
       include: {
-        project: true,
-        proposal: true,
+        project: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            budget: true,
+            deadline: true,
+            status: true,
+            clientId: true,
+            client: {
+              select: {
+                id: true,
+                name: true,
+                avatar: true,
+                email: true,
+              }
+            }
+          }
+        },
+        bid: {
+          select: {
+            id: true,
+            amount: true,
+            deliveryTime: true,
+            coverLetter: true,
+            status: true,
+            freelancer: {
+              select: {
+                id: true,
+                name: true,
+                avatar: true,
+                email: true,
+                bio: true,
+              }
+            }
+          }
+        },
+        client: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+            email: true,
+          }
+        },
+        freelancer: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+            email: true,
+            bio: true,
+          }
+        },
+        milestones: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
       },
     });
     
@@ -231,7 +311,7 @@ export async function PUT(
       
       // Can't update terms if contract is already in progress
       if (
-        contract.status !== ContractStatus.PROPOSED
+        contract.stage !== ContractStage.PROPOSAL
       ) {
         return NextResponse.json(
           { error: 'Cannot update terms for a contract that is already active' },
@@ -242,10 +322,10 @@ export async function PUT(
     
     if (status) {
       // Status update permissions vary based on status
-      if (status === ContractStatus.APPROVED) {
+      if (status === ContractStage.APPROVAL) {
         // Only freelancer can approve
         if (
-          contract.proposal.freelancerId !== user.id &&
+          contract.bid?.freelancer.id !== user.id &&
           user.role !== UserRole.ADMIN
         ) {
           return NextResponse.json(
@@ -255,13 +335,52 @@ export async function PUT(
         }
         
         // Can only approve from PROPOSED state
-        if (contract.status !== ContractStatus.PROPOSED) {
+        if (contract.stage !== ContractStage.PROPOSAL) {
           return NextResponse.json(
             { error: 'Can only approve a contract in PROPOSED state' },
             { status: 400 }
           );
         }
-      } else if (status === ContractStatus.COMPLETED) {
+      } else if (status === ContractStage.PAYMENT) {
+        // Only client can mark as payment
+        if (
+          contract.project.clientId !== user.id &&
+          user.role !== UserRole.ADMIN
+        ) {
+          return NextResponse.json(
+            { error: 'Only the client can mark a contract as payment' },
+            { status: 401 }
+          );
+        }
+        
+        // Can only mark as payment from APPROVAL state
+        if (contract.stage !== ContractStage.APPROVAL) {
+          return NextResponse.json(
+            { error: 'Can only mark a contract as payment from APPROVAL state' },
+            { status: 400 }
+          );
+        }
+
+      } else if (status === ContractStage.REVIEW) {
+        // Only client can mark as review
+        if (
+          contract.project.clientId !== user.id &&
+          user.role !== UserRole.ADMIN
+        ) {
+          return NextResponse.json(
+            { error: 'Only the client can mark a contract as review' },
+            { status: 401 }
+          );
+        }
+        
+        // Can only mark as review from PAYMENT state
+        if (contract.stage !== ContractStage.PAYMENT) {
+          return NextResponse.json(
+            { error: 'Can only mark a contract as review from PAYMENT state' },
+            { status: 400 }
+          );
+        }
+      } else if (status === ContractStage.COMPLETED) {
         // Only client can mark as completed
         if (
           contract.project.clientId !== user.id &&
@@ -273,18 +392,18 @@ export async function PUT(
           );
         }
         
-        // Can only complete from IN_PROGRESS state
-        if (contract.status !== ContractStatus.IN_PROGRESS) {
+        // Can only complete from REVIEW state
+        if (contract.stage !== ContractStage.REVIEW) {
           return NextResponse.json(
-            { error: 'Can only complete a contract in IN_PROGRESS state' },
+            { error: 'Can only complete a contract in REVIEW state' },
             { status: 400 }
           );
         }
-      } else if (status === ContractStatus.CANCELLED) {
+      } else if (status === ContractStage.CANCELLED) {
         // Both client and freelancer can cancel
         if (
-          contract.project.clientId !== user.id &&
-          contract.proposal.freelancerId !== user.id &&
+          contract.clientId !== user.id &&
+          contract.bid?.freelancer.id !== user.id &&
           user.role !== UserRole.ADMIN
         ) {
           return NextResponse.json(
@@ -294,9 +413,9 @@ export async function PUT(
         }
         
         // Can't cancel a completed contract
-        if (contract.status === ContractStatus.COMPLETED) {
+        if (contract.stage === ContractStage.COMPLETED || contract.stage === ContractStage.CANCELLED) {
           return NextResponse.json(
-            { error: 'Cannot cancel a completed contract' },
+            { error: 'Contract cannot be updated in its current stage' },
             { status: 400 }
           );
         }
@@ -306,12 +425,12 @@ export async function PUT(
     // If updating to IN_PROGRESS, set start date
     const data: any = {
       ...(terms && { terms }),
-      ...(status && { status: status as ContractStatus }),
+      ...(status && { stage: status as ContractStage }),
     };
     
-    if (status === ContractStatus.IN_PROGRESS) {
+    if (status === ContractStage.PAYMENT) {
       data.startDate = new Date();
-    } else if (status === ContractStatus.COMPLETED) {
+    } else if (status === ContractStage.APPROVAL) {
       data.endDate = new Date();
     }
     
@@ -319,12 +438,70 @@ export async function PUT(
     const updatedContract = await prisma.contract.update({
       where: { id: params.id },
       data,
+      include: {
+        project: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            budget: true,
+            deadline: true,
+            status: true,
+            clientId: true,
+            client: {
+              select: {
+                id: true,
+                name: true,
+                avatar: true,
+                email: true,
+              }
+            }
+          }
+        },
+        bid: {
+          select: {
+            id: true,
+            amount: true,
+            deliveryTime: true,
+            coverLetter: true,
+            status: true,
+            freelancer: {
+              select: {
+                id: true,
+                name: true,
+                avatar: true,
+                email: true,
+                bio: true,
+              }
+            }
+          }
+        },
+        client: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+            email: true,
+          }
+        },
+        freelancer: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+            email: true,
+            bio: true,
+          }
+        },
+        milestones: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
+      },
     });
     
-    return NextResponse.json(
-      { message: 'Contract updated successfully', contract: updatedContract },
-      { status: 200 }
-    );
+    return NextResponse.json({ contract: updatedContract }, { status: 200 });
   } catch (error) {
     console.error('Error updating contract:', error);
     return NextResponse.json(

@@ -36,6 +36,10 @@ export default function ProjectFormModal() {
                   deadline: formData.get('deadline') as string,
                   skills: (formData.get('skills') as string).split(',').map(skill => skill.trim()),
                   category: 'General',
+                  features: Array.from(formData.getAll('features')) as string[],
+                  type: formData.get('type') as string,
+                  experienceLevel: formData.get('experienceLevel') as string,
+                  deliverables: Array.from(formData.getAll('deliverables')) as string[],
                 }),
               });
 

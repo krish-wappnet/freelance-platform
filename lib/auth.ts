@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from './prisma';
 import { UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { useState, useEffect } from 'react';
 
 // Type definitions
 export type AuthUser = {

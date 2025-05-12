@@ -47,6 +47,33 @@ enum MilestoneStatus {
   PAID
 }
 
+// Key Features Enum
+enum KeyFeature {
+  AUTHENTICATION
+  TASK_MANAGEMENT
+  FILTERING
+  RESPONSIVE_UI
+  REST_API
+  DOCUMENTATION
+  SOURCE_CODE
+  README
+  DEPLOYMENT_INSTRUCTIONS
+  LIVE_DEMO
+}
+
+// Project Type Enum
+enum ProjectType {
+  ONE_TIME
+  CONTINUOUS
+}
+
+// Experience Level Enum
+enum ExperienceLevel {
+  BEGINNER
+  INTERMEDIATE
+  EXPERT
+}
+
 model User {
   id            String    @id @default(uuid())
   email         String    @unique
@@ -85,6 +112,19 @@ model Project {
   category        String
   skills          String[]
   status          ProjectStatus @default(OPEN)
+  
+  // Key Features
+  features        KeyFeature[]  // Array of key features
+  
+  // Project Details
+  type            ProjectType   @default(ONE_TIME)
+  timelineWeeks   Int           @default(3)
+  experienceLevel ExperienceLevel @default(INTERMEDIATE)
+  
+  // Deliverables
+  deliverables    String[]      // Array of deliverables
+  
+  // Timestamps
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   
@@ -123,6 +163,7 @@ model Contract {
   description     String
   amount          Float
   stage           ContractStage @default(PROPOSAL)
+  paymentIntentId String?
   startDate       DateTime?
   endDate         DateTime?
   termsAccepted   Boolean       @default(false)
