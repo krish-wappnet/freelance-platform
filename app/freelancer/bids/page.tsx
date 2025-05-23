@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import DashboardLayout from '@/components/layout/dashboard-layout';
 
 interface Bid {
   id: string;
@@ -51,57 +50,55 @@ export default function FreelancerBids() {
   }
 
   return (
-    <DashboardLayout role="FREELANCER">
-      <div className="p-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Bids</CardTitle>
-            <CardDescription>View all your submitted bids and their status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Bid Amount</TableHead>
-                  <TableHead>Delivery Time</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Date Submitted</TableHead>
+    <div className="p-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Bids</CardTitle>
+          <CardDescription>View all your submitted bids and their status</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Project</TableHead>
+                <TableHead>Bid Amount</TableHead>
+                <TableHead>Delivery Time</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Date Submitted</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {bids.map((bid) => (
+                <TableRow key={bid.id}>
+                  <TableCell>
+                    <div className="font-medium">{bid.project.title}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {bid.project.description.substring(0, 100)}...
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-medium">₹{bid.amount.toLocaleString()}</div>
+                    <div className="text-sm text-muted-foreground">
+                      Project Budget: ₹{bid.project.budget.toLocaleString()}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {bid.deliveryTime} days
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={bid.status === 'PENDING' ? 'secondary' : bid.status === 'SHORTLISTED' ? 'default' : bid.status === 'ACCEPTED' ? 'outline' : 'destructive'}>
+                      {bid.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {format(new Date(bid.createdAt), 'MMM d, yyyy')}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {bids.map((bid) => (
-                  <TableRow key={bid.id}>
-                    <TableCell>
-                      <div className="font-medium">{bid.project.title}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {bid.project.description.substring(0, 100)}...
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">₹{bid.amount.toLocaleString()}</div>
-                      <div className="text-sm text-muted-foreground">
-                        Project Budget: ₹{bid.project.budget.toLocaleString()}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {bid.deliveryTime} days
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={bid.status === 'PENDING' ? 'secondary' : bid.status === 'SHORTLISTED' ? 'default' : bid.status === 'ACCEPTED' ? 'outline' : 'destructive'}>
-                        {bid.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(bid.createdAt), 'MMM d, yyyy')}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
-    </DashboardLayout>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

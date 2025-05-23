@@ -87,7 +87,7 @@ export default function ContractPage({ params }: { params: { id: string } }) {
   };
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="py-8">
       <div className="grid gap-8">
         <Card>
           <CardHeader>

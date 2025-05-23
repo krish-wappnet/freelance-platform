@@ -182,6 +182,7 @@ model Contract {
   bidId           String?       @unique
   bid             Bid?          @relation(fields: [bidId], references: [id])
   milestones      Milestone[]
+  payments        Payment[]
   
   @@map("contracts")
 }
@@ -202,6 +203,7 @@ model Milestone {
   projectId       String
   project         Project          @relation(fields: [projectId], references: [id])
   progressUpdates MilestoneProgress[]
+  payments        Payment[]
   
   @@map("milestones")
 }
@@ -222,10 +224,11 @@ model Notification {
   message       String
   type          NotificationType
   isRead        Boolean          @default(false)
-  referenceId   String?  // ID of the related entity (milestone, contract, etc.)
-  referenceType String?  // Type of the related entity ('MILESTONE', 'CONTRACT', etc.)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  referenceId   String?          // ID of the related entity (milestone, contract, etc.)
+  referenceType String?          // Type of the related entity ('MILESTONE', 'CONTRACT', etc.)
+  amount        Float?           // Amount for payment notifications
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
   @@map("notifications")
 }
@@ -259,4 +262,29 @@ model Message {
   receiver        User      @relation("ReceiverToMessage", fields: [receiverId], references: [id])
 
   @@map("messages")
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  amount          Float
+  status          PaymentStatus @default(PENDING)
+  paymentIntentId String? // Add this line
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  milestoneId     String
+  milestone       Milestone     @relation(fields: [milestoneId], references: [id])
+  contractId      String
+  contract        Contract      @relation(fields: [contractId], references: [id])
+
+  @@map("payments")
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
 }

@@ -36,7 +36,6 @@ export default async function ClientDashboard() {
   const { contracts, stats } = await getDashboardData();
 
   return (
-    <DashboardLayout role="CLIENT">
       <DashboardContent 
         role={UserRole.CLIENT}
         stats={stats}
@@ -44,6 +43,5 @@ export default async function ClientDashboard() {
         projects={projects}
       />
 
-    </DashboardLayout>
   );
 }

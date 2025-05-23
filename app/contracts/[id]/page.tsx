@@ -7,14 +7,23 @@ import { Button } from '@/components/ui/button';
 import { Check, X, Loader2 } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth';
 import { ContractStage } from '@prisma/client';
+import Link from 'next/link';
 
 export default function ContractDetails() {
   const router = useRouter();
   const { id } = useParams();
+  const [user, setUser] = useState<any>(null);
   const [contract, setContract] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [user] = useState(getCurrentUser());
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const userData = await getCurrentUser();
+      setUser(userData);
+    };
+    fetchUser();
+  }, []);
 
   useEffect(() => {
     const fetchContract = async () => {
@@ -136,16 +145,18 @@ export default function ContractDetails() {
               <h3 className="font-semibold mb-2">Milestones</h3>
               <div className="space-y-4">
                 {contract.milestones.map((milestone: any) => (
-                  <div key={milestone.id} className="border rounded-lg p-4">
-                    <h4 className="font-medium mb-2">{milestone.title}</h4>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {milestone.description}
-                    </p>
-                    <div className="flex justify-between items-center">
-                      <span>₹{milestone.amount.toLocaleString()}</span>
-                      <span>{milestone.status}</span>
+                  <Link href={`/milestones/${milestone.id}`} key={milestone.id}>
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-medium mb-2">{milestone.title}</h4>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {milestone.description}
+                      </p>
+                      <div className="flex justify-between items-center">
+                        <span>₹{milestone.amount.toLocaleString()}</span>
+                        <span>{milestone.status}</span>
+                      </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>

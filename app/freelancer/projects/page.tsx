@@ -4,7 +4,6 @@ import { UserRole } from '@prisma/client';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import FreelancerProjectList from '@/app/client/components/projects/FreelancerProjectList';
-import Sidebar from '@/components/dashboard/sidebar';
 
 export default async function FreelancerProjects() {
   const user = await getCurrentUser();
@@ -74,8 +73,7 @@ export default async function FreelancerProjects() {
 
   return (
     <div className="flex h-screen">
-      <Sidebar user={user} role="FREELANCER" activePath={activePath} />
-      <div className="flex-1 p-8 ml-64">
+      <div className="flex-1 p-6">
         <div className="container">
           <FreelancerProjectList projects={cleanProjects} />
         </div>

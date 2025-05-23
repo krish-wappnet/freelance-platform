@@ -73,16 +73,10 @@ export async function GET(
                 },
               },
             },
-            proposal: {
+            freelancer: {
               select: {
                 id: true,
-                freelancerId: true,
-                freelancer: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
+                name: true,
               },
             },
           },
@@ -100,7 +94,7 @@ export async function GET(
     
     // Check if user is authorized to view this payment
     if (
-      payment.contract.proposal.freelancerId !== user.id &&
+      payment.contract.freelancer.id !== user.id &&
       payment.contract.project.clientId !== user.id &&
       user.role !== UserRole.ADMIN
     ) {

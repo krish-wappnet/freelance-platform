@@ -167,6 +167,29 @@ export async function POST(
         case 'PAYMENT_REQUESTED':
           notificationMessage = `Freelancer ${user.name} has requested payment for milestone: ${milestone.title}`;
           notificationType = 'PAYMENT_REQUEST';
+          
+          // Create payment record
+          const payment = await prisma.payment.create({
+            data: {
+              amount: milestone.amount,
+              contractId: milestone.contractId,
+              milestoneId: milestone.id,
+              status: 'PENDING',
+            },
+          });
+
+          await prisma.notification.create({
+            data: {
+              userId: milestone.contract.project.clientId,
+              title: notificationTitle,
+              message: notificationMessage,
+              type: notificationType,
+              referenceId: payment.id, // Use payment ID instead of milestone ID
+              referenceType: 'PAYMENT',
+              amount: milestone.amount,
+              isRead: false,
+            },
+          });
           break;
         case 'PAID':
           notificationMessage = `Payment has been released for milestone: ${milestone.title}`;

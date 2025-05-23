@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ProgressTimeline } from '@/components/milestones/progress-timeline';
-import { ProgressUpdateForm } from '@/components/milestones/progress-update-form';
 import { format } from 'date-fns';
 import { MilestoneStatus, Milestone as MilestoneType } from '@prisma/client';
 import { useToast } from '@/hooks/use-toast';
+import { PaymentButton } from '../../../components/PaymentButton';
 
 interface MilestoneWithUpdates extends MilestoneType {
   contract: {
@@ -34,9 +34,14 @@ interface MilestoneWithUpdates extends MilestoneType {
       email: string | null;
     };
   }>;
+  payments: Array<{
+    id: string;
+    status: string;
+    amount: number;
+  }>;
 }
 
-export default function FreelancerMilestoneDetailPage({
+export default function ClientMilestoneDetailPage({
   params,
 }: {
   params: { id: string };
@@ -70,24 +75,6 @@ export default function FreelancerMilestoneDetailPage({
     fetchMilestone();
   }, [params.id, toast]);
 
-  const handleUpdate = async () => {
-    try {
-      const response = await fetch(`/api/milestones/${params.id}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch milestone');
-      }
-      const data = await response.json();
-      setMilestone(data.milestone);
-    } catch (error) {
-      console.error('Error fetching milestone:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to refresh milestone',
-        variant: 'destructive',
-      });
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -113,6 +100,9 @@ export default function FreelancerMilestoneDetailPage({
     PAID: 'bg-green-100 text-green-800',
     CANCELLED: 'bg-red-100 text-red-800',
   }[milestone.status] || 'bg-gray-100 text-gray-800';
+
+  const pendingPayment = milestone.payments?.find(p => p.status === 'PENDING');
+  const canMakePayment = milestone.status === 'PAYMENT_REQUESTED' && !!pendingPayment;
 
   return (
     <div className="py-8 px-4 sm:px-6 lg:px-8">
@@ -158,26 +148,23 @@ export default function FreelancerMilestoneDetailPage({
 
         <Card>
           <CardHeader>
-            <CardTitle>Update Progress</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ProgressUpdateForm
-              milestoneId={milestone.id}
-              currentStatus={milestone.status}
-              onUpdate={handleUpdate}
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>Progress Updates</CardTitle>
           </CardHeader>
           <CardContent>
             <ProgressTimeline updates={milestone.progressUpdates} />
           </CardContent>
         </Card>
+
+        {canMakePayment && pendingPayment && (
+          <div className="mt-6">
+            <PaymentButton
+              paymentId={pendingPayment.id}
+              amount={pendingPayment.amount}
+              className="w-full"
+            />
+          </div>
+        )}
       </div>
     </div>
   );
-}
+} 

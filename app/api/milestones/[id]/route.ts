@@ -23,6 +23,7 @@ type MilestoneWithRelations = Milestone & {
     user: { id: string; name: string; email: string; };
   }>;
   project: { id: string; title: string };
+  payments: Array<{ id: string; status: string }>;
 };
 
 const updateMilestoneSchema = z.object({
@@ -129,6 +130,7 @@ export async function GET(
             title: true,
           },
         },
+        payments: true,
       },
     }) as unknown as MilestoneWithRelations | null;
     

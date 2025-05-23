@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import { hasRole } from '@/lib/auth';
 import { UserRole } from '@prisma/client';
-import DashboardLayout from '@/app/dashboard/layout';
 import { getDashboardData } from '@/app/dashboard/server';
 import DashboardContent from '@/components/dashboard/content';
 import { prisma } from '@/lib/prisma';
@@ -78,13 +77,11 @@ export default async function FreelancerDashboard() {
   }
 
   return (
-    <DashboardLayout role="FREELANCER">
       <DashboardContent 
         projects={cleanProjects} 
         contracts={contracts} 
         stats={stats} 
         role="FREELANCER" 
       />
-    </DashboardLayout>
   );
 }

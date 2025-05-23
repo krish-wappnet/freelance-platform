@@ -3,19 +3,20 @@ import Sidebar from '@/components/dashboard/sidebar';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { redirect } from 'next/navigation';
 
-export default async function FreelancerLayout({
+export default async function ClientLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const user = await getCurrentUser();
-  
+
   if (!user) {
     redirect('/login');
   }
 
-  if (user.role !== 'FREELANCER') {
-    redirect('/dashboard');
+  // Optional: Redirect non-clients away from /client routes
+  if (user.role !== 'CLIENT') {
+     redirect('/dashboard'); // Or show a forbidden page
   }
 
   return (
@@ -23,12 +24,12 @@ export default async function FreelancerLayout({
       <Sidebar 
         user={user}
         role={user.role as 'CLIENT' | 'FREELANCER'}
-        activePath="/freelancer"
+        activePath="/client"
       />
       <main className="flex-1 ml-0 md:ml-[200px] lg:ml-[250px]">
         <div className="border-b">
           <div className="flex items-center justify-between h-16 px-4">
-            <h1 className="text-lg font-semibold">Freelancer Dashboard</h1>
+            <h1 className="text-lg font-semibold">Client Dashboard</h1>
             <NotificationBell />
           </div>
         </div>
@@ -38,4 +39,4 @@ export default async function FreelancerLayout({
       </main>
     </div>
   );
-}
+} 

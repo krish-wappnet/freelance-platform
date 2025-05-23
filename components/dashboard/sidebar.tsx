@@ -71,7 +71,7 @@ export default function Sidebar({ user, role, activePath }: SidebarProps) {
     },
     {
       title: 'Milestones',
-      href: role === 'CLIENT' ? '/dashboard/milestones' : '/freelancer/milestones',
+      href: role === 'CLIENT' ? '/milestones' : '/milestones',
       icon: <Milestone className="h-5 w-5" />
     },
     {

@@ -11,6 +11,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { DollarSign, Clock, Calendar, Check, X, Users, Briefcase, FileText, CreditCard, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 interface Contract {
   id: string;
@@ -256,28 +257,30 @@ export default function ContractDetailsPage() {
               <CardContent className="pt-0">
                 <div className="space-y-4">
                   {(contract.milestones || []).map((milestone) => (
-                    <div key={milestone.id} className="flex items-center justify-between p-3 rounded-lg bg-muted">
-                      <div className="flex items-center gap-4">
-                        <div className="flex flex-col">
-                          <span className="font-medium">{milestone.title}</span>
-                          <span className="text-sm text-muted-foreground">₹{milestone.amount.toLocaleString()}</span>
+                    <Link href={`/milestones/${milestone.id}`} key={milestone.id}>
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
+                        <div className="flex items-center gap-4">
+                          <div className="flex flex-col">
+                            <span className="font-medium">{milestone.title}</span>
+                            <span className="text-sm text-muted-foreground">₹{milestone.amount.toLocaleString()}</span>
+                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            {milestone.dueDate ? format(new Date(milestone.dueDate), 'MMM d, yyyy') : 'No due date'}
+                          </span>
                         </div>
-                        <span className="text-sm text-muted-foreground">
-                          {milestone.dueDate ? format(new Date(milestone.dueDate), 'MMM d, yyyy') : 'No due date'}
-                        </span>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "capitalize",
+                            milestone.status === "PENDING" && "bg-yellow-500/10 text-yellow-700 border-yellow-300",
+                            milestone.status === "COMPLETED" && "bg-green-500/10 text-green-700 border-green-300",
+                            milestone.status === "CANCELLED" && "bg-red-500/10 text-red-700 border-red-300",
+                          )}
+                        >
+                          {milestone.status}
+                        </Badge>
                       </div>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "capitalize",
-                          milestone.status === "PENDING" && "bg-yellow-500/10 text-yellow-700 border-yellow-300",
-                          milestone.status === "COMPLETED" && "bg-green-500/10 text-green-700 border-green-300",
-                          milestone.status === "CANCELLED" && "bg-red-500/10 text-red-700 border-red-300",
-                        )}
-                      >
-                        {milestone.status}
-                      </Badge>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </CardContent>

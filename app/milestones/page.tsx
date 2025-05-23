@@ -116,7 +116,7 @@ export default async function MilestonesPage() {
   };
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Milestones</h1>
       </div>
@@ -133,7 +133,7 @@ export default async function MilestonesPage() {
       ) : (
         <div className="grid gap-4">
           {milestones.map((milestone) => (
-            <Link href={`/dashboard/milestones/${milestone.id}`} key={milestone.id}>
+            <Link href={`/milestones/${milestone.id}`} key={milestone.id}>
               <Card className="hover:bg-accent/50 transition-colors">
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start">
@@ -166,4 +166,4 @@ export default async function MilestonesPage() {
       )}
     </div>
   );
-}
+} 
