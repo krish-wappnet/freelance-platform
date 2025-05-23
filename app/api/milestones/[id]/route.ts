@@ -1,8 +1,29 @@
 import { getCurrentUser, hasRole } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import { MilestoneStatus, UserRole } from '@prisma/client';
+import { MilestoneStatus, UserRole, type Milestone, type Contract, type Project } from '@prisma/client';
 import { z } from 'zod';
+
+type MilestoneWithRelations = Milestone & {
+  contract: Contract & {
+    project: Project & {
+      client: { id: string; name: string };
+    };
+    bid?: { id: string; freelancerId: string };
+    freelancer: { id: string; name: string; email: string; };
+  };
+  progressUpdates: Array<{
+    id: string;
+    description: string;
+    status: MilestoneStatus;
+    createdAt: Date;
+    updatedAt: Date;
+    userId: string;
+    milestoneId: string;
+    user: { id: string; name: string; email: string; };
+  }>;
+  project: { id: string; title: string };
+};
 
 const updateMilestoneSchema = z.object({
   title: z.string().min(3).optional(),
@@ -13,8 +34,8 @@ const updateMilestoneSchema = z.object({
     'PENDING',
     'IN_PROGRESS',
     'COMPLETED',
-    'APPROVED',
-    'REJECTED',
+    'PAYMENT_REQUESTED',
+    'PAID'
   ]).optional(),
 });
 
@@ -75,23 +96,41 @@ export async function GET(
                 },
               },
             },
-            proposal: {
+            bid: {
               select: {
                 id: true,
                 freelancerId: true,
-                freelancer: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
+              },
+            },
+            freelancer: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
               },
             },
           },
         },
-        payments: true,
+        progressUpdates: {
+          orderBy: { createdAt: 'desc' },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        project: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
       },
-    });
+    }) as unknown as MilestoneWithRelations | null;
     
     if (!milestone) {
       return NextResponse.json(
@@ -102,7 +141,7 @@ export async function GET(
     
     // Check if user is authorized to view this milestone
     if (
-      milestone.contract.proposal.freelancerId !== user.id &&
+      milestone.contract.freelancerId !== user.id &&
       milestone.contract.project.clientId !== user.id &&
       user.role !== UserRole.ADMIN
     ) {
@@ -190,12 +229,26 @@ export async function PUT(
       include: {
         contract: {
           include: {
-            project: true,
-            proposal: true,
+            project: {
+              select: {
+                id: true,
+                clientId: true,
+              },
+            },
+            freelancer: {
+              select: {
+                id: true,
+              },
+            },
           },
         },
       },
-    });
+    }) as unknown as (Milestone & {
+      contract: Contract & {
+        project: { id: string; clientId: string };
+        freelancer: { id: string };
+      };
+    }) | null;
     
     if (!milestone) {
       return NextResponse.json(
@@ -219,7 +272,7 @@ export async function PUT(
       if (status === MilestoneStatus.IN_PROGRESS) {
         // Freelancer starts work on milestone
         if (
-          milestone.contract.proposal.freelancerId !== user.id &&
+          milestone.contract.freelancer.id !== user.id &&
           user.role !== UserRole.ADMIN
         ) {
           return NextResponse.json(
@@ -237,7 +290,7 @@ export async function PUT(
       } else if (status === MilestoneStatus.COMPLETED) {
         // Freelancer marks milestone as completed
         if (
-          milestone.contract.proposal.freelancerId !== user.id &&
+          milestone.contract.freelancer.id !== user.id &&
           user.role !== UserRole.ADMIN
         ) {
           return NextResponse.json(
@@ -252,21 +305,21 @@ export async function PUT(
             { status: 400 }
           );
         }
-      } else if (status === MilestoneStatus.APPROVED || status === MilestoneStatus.REJECTED) {
-        // Client approves or rejects completion
+      } else if (status === 'PAYMENT_REQUESTED') {
+        // Freelancer requests payment for completed milestone
         if (
-          milestone.contract.project.clientId !== user.id &&
+          milestone.contract.freelancer.id !== user.id &&
           user.role !== UserRole.ADMIN
         ) {
           return NextResponse.json(
-            { error: 'Only the client can approve or reject a milestone' },
+            { error: 'Only the freelancer can request payment for a milestone' },
             { status: 401 }
           );
         }
         
         if (milestone.status !== MilestoneStatus.COMPLETED) {
           return NextResponse.json(
-            { error: 'Can only approve or reject a COMPLETED milestone' },
+            { error: 'Can only request payment for a COMPLETED milestone' },
             { status: 400 }
           );
         }
@@ -307,15 +360,13 @@ export async function PUT(
       },
     });
     
-    // If milestone is approved, create a payment
-    if (status === MilestoneStatus.APPROVED) {
-      await prisma.payment.create({
-        data: {
-          contractId: milestone.contractId,
-          milestoneId: milestone.id,
-          amount: milestone.amount,
-          status: 'PENDING',
-        },
+    // If milestone payment is requested, update the status
+    if (status === 'PAYMENT_REQUESTED') {
+      // The actual payment processing would happen in a separate flow
+      // We just update the status here to indicate payment was requested
+      await prisma.milestone.update({
+        where: { id: params.id },
+        data: { status: 'PAYMENT_REQUESTED' },
       });
     }
     

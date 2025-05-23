@@ -5,7 +5,7 @@ import { UserRole, ContractStage } from '@prisma/client';
 import { z } from 'zod';
 
 const contractSchema = z.object({
-  proposalId: z.string().uuid(),
+  bidId: z.string().uuid(),
   terms: z.string().min(10),
   totalAmount: z.number().positive(),
   milestones: z.array(
@@ -16,7 +16,16 @@ const contractSchema = z.object({
       dueDate: z.string().optional(),
     })
   ).min(1),
-});
+}).refine(
+  (data) => {
+    const totalMilestoneAmount = data.milestones.reduce((sum, milestone) => sum + milestone.amount, 0);
+    return Math.abs(totalMilestoneAmount - data.totalAmount) < 0.01; // Allow for small floating point differences
+  },
+  {
+    message: 'The sum of milestone amounts must equal the total contract amount',
+    path: ['milestones'],
+  }
+);
 
 /**
  * @swagger
@@ -139,6 +148,126 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+
+/**
+ * @swagger
+ * /api/contracts/{id}:
+ *   get:
+ *     summary: Get a single contract
+ *     description: Returns a single contract by ID
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Contract ID
+ *     responses:
+ *       200:
+ *         description: Contract details
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Contract not found
+ *       500:
+ *         description: Internal server error
+ */
+async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const user = await getCurrentUser();
+    
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+    
+    const contract = await prisma.contract.findUnique({
+      where: { id: params.id },
+      include: {
+        project: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            skills: true,
+            clientId: true,
+            client: {
+              select: {
+                id: true,
+                name: true,
+                avatar: true,
+              },
+            },
+          },
+        },
+        bid: {
+          select: {
+            id: true,
+            amount: true,
+            deliveryTime: true,
+            coverLetter: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+            freelancer: {
+              select: {
+                id: true,
+                name: true,
+                avatar: true,
+                bio: true,
+              },
+            },
+          },
+        },
+        milestones: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            amount: true,
+            dueDate: true,
+            status: true,
+          },
+        },
+      },
+    });
+    
+    if (!contract) {
+      return NextResponse.json(
+        { error: 'Contract not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if user has access to this contract
+    if (user.role === UserRole.FREELANCER && contract.freelancerId !== user.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      );
+    }
+
+    if (user.role === UserRole.CLIENT && contract.clientId !== user.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      );
+    }
+    
+    return NextResponse.json(contract, { status: 200 });
+  } catch (error) {
+    console.error('Error fetching contract:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
 }
 
 /**
@@ -228,11 +357,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error.errors }, { status: 400 });
     }
     
-    const { proposalId, terms, milestones } = result.data;
+    const { bidId, terms, milestones } = result.data;
     
     // Check if bid exists
     const bid = await prisma.bid.findUnique({
-      where: { id: proposalId },
+      where: { id: bidId },
       include: {
         project: true,
         freelancer: true,
@@ -259,14 +388,31 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Check if contract already exists
-    const existingContract = await prisma.contract.findUnique({
-      where: { bidId: proposalId },
+    // Check if contract already exists using bidId
+    const existingContract = await prisma.contract.findFirst({
+      where: {
+        bidId: bidId
+      },
+      include: {
+        bid: true
+      }
     });
-    
+
     if (existingContract) {
+      // If contract exists but has no bidId, update it with the bidId
+      if (!existingContract.bidId) {
+        await prisma.contract.update({
+          where: { id: existingContract.id },
+          data: { bidId: bidId }
+        });
+        return NextResponse.json(
+          { error: 'Contract updated with bid information' },
+          { status: 200 }
+        );
+      }
+      
       return NextResponse.json(
-        { error: 'A contract already exists for this proposal' },
+        { error: 'A contract already exists for this bid' },
         { status: 409 }
       );
     }
@@ -277,7 +423,7 @@ export async function POST(request: NextRequest) {
       0
     );
     
-    if (Math.abs(milestoneTotalAmount - bid.amount) > 0.01) {
+    if (Math.abs(milestoneTotalAmount - result.data.totalAmount) > 0.01) {
       return NextResponse.json(
         { error: 'The sum of milestone amounts must equal the total contract amount' },
         { status: 400 }
@@ -289,7 +435,7 @@ export async function POST(request: NextRequest) {
       // Create contract
       const newContract = await tx.contract.create({
         data: {
-          bidId: proposalId,
+          bidId: bidId,
           projectId: bid.projectId,
           clientId: bid.project.clientId,
           freelancerId: bid.freelancerId,

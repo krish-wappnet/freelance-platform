@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
 import { formatDistanceToNow } from 'date-fns';
-import { Briefcase, Users, Clock, Calendar, DollarSign, ExternalLink, Check, X } from 'lucide-react';
+import { Briefcase, Users, Clock, Calendar, DollarSign, ExternalLink, Check, X, ArrowRight } from 'lucide-react';
 import DashboardLayout from '@/components/layout/dashboard-layout';
 import { cn } from '@/lib/utils';
 
@@ -206,6 +206,19 @@ export default function ClientBids() {
                         >
                           {bid.status.toLowerCase().replace('_', ' ')}
                         </Badge>
+                        {bid.status === 'ACCEPTED' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="ml-4"
+                            onClick={() => {
+                              window.location.href = `/client/contracts/${bid.projectId}`;
+                            }}
+                          >
+                            View Contract
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -261,11 +274,14 @@ export default function ClientBids() {
                             </Button>
                             <Button
                               variant="default"
-                              onClick={() => updateBidStatus(bid.id, 'ACCEPTED')}
+                              onClick={() => {
+                                updateBidStatus(bid.id, 'ACCEPTED');
+                                window.location.href = `/client/contracts/create?projectId=${bid.projectId}&bidId=${bid.id}`;
+                              }}
                               className="flex items-center gap-2"
                             >
                               <Check className="h-4 w-4" />
-                              Accept
+                              Accept & Create Contract
                             </Button>
                           </>
                         )}

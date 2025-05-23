@@ -99,19 +99,89 @@ export default function ContractPage({ params }: { params: { id: string } }) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <span className="font-medium">Amount:</span>
-                  <span className="ml-2">₹{contract.amount.toLocaleString()}</span>
+                  <p>₹{contract.amount.toLocaleString()}</p>
                 </div>
                 <div>
                   <span className="font-medium">Status:</span>
-                  <span className="ml-2 capitalize">{contract.stage}</span>
+                  <p className={`font-medium ${
+                    contract.stage === 'PROPOSAL' ? 'text-blue-600' :
+                    contract.stage === 'APPROVAL' ? 'text-green-600' :
+                    contract.stage === 'PAYMENT' ? 'text-yellow-600' :
+                    contract.stage === 'REVIEW' ? 'text-purple-600' :
+                    contract.stage === 'COMPLETED' ? 'text-gray-600' :
+                    'text-red-600'
+                  }`}>
+                    {contract.stage}
+                  </p>
                 </div>
-                <div>
-                  <span className="font-medium">Start Date:</span>
-                  <span className="ml-2">
-                    {contract.startDate ? new Date(contract.startDate).toLocaleDateString() : 'Not set'}
-                  </span>
+              </div>
+
+              {/* Terms and Conditions */}
+              <div className="mt-6">
+                <h3 className="font-medium mb-2">Terms and Conditions</h3>
+                <div className="space-y-2">
+                  <p>{contract.terms}</p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        fetch(`/api/contracts/${params.id}/accept`, {
+                          method: 'PUT',
+                        })
+                        .then(response => {
+                          if (!response.ok) {
+                            throw new Error('Failed to accept terms');
+                          }
+                          return response.json();
+                        })
+                        .then(data => {
+                          setContract(data);
+                          toast({
+                            title: 'Success',
+                            description: 'Terms accepted successfully',
+                          });
+                        })
+                        .catch(error => {
+                          toast({
+                            title: 'Error',
+                            description: 'Failed to accept terms',
+                            variant: 'destructive',
+                          });
+                        });
+                      }}
+                      disabled={contract.termsAccepted}
+                    >
+                      {contract.termsAccepted ? 'Terms Accepted' : 'Accept Terms'}
+                    </Button>
+                  </div>
                 </div>
-                <div>
+              </div>
+
+              {/* Milestones */}
+              <div className="mt-6">
+                <h3 className="font-medium mb-2">Milestones</h3>
+                <div className="space-y-4">
+                  {contract.milestones.map((milestone: any) => (
+                    <div key={milestone.id} className="border rounded-lg p-4">
+                      <h4 className="font-medium mb-2">{milestone.title}</h4>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {milestone.description}
+                      </p>
+                      <div className="flex justify-between items-center">
+                        <span>₹{milestone.amount.toLocaleString()}</span>
+                        <span className={`font-medium ${
+                          milestone.status === 'PENDING' ? 'text-blue-600' :
+                          milestone.status === 'IN_PROGRESS' ? 'text-yellow-600' :
+                          milestone.status === 'COMPLETED' ? 'text-green-600' :
+                          milestone.status === 'PAYMENT_REQUESTED' ? 'text-purple-600' :
+                          milestone.status === 'PAID' ? 'text-gray-600' :
+                          'text-red-600'
+                        }`}>
+                          {milestone.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                   <span className="font-medium">End Date:</span>
                   <span className="ml-2">
                     {contract.endDate ? new Date(contract.endDate).toLocaleDateString() : 'Not set'}

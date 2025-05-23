@@ -99,6 +99,8 @@ model User {
   contractsAsClient   Contract[] @relation("ClientToContract")
   sentMessages        Message[]  @relation("SenderToMessage")
   receivedMessages    Message[]  @relation("ReceiverToMessage")
+  notifications       Notification[]
+  milestoneProgress   MilestoneProgress[]
 
   @@map("users")
 }
@@ -199,8 +201,49 @@ model Milestone {
   contract        Contract         @relation(fields: [contractId], references: [id])
   projectId       String
   project         Project          @relation(fields: [projectId], references: [id])
-
+  progressUpdates MilestoneProgress[]
+  
   @@map("milestones")
+}
+
+enum NotificationType {
+  PAYMENT_REQUEST
+  PAYMENT_RECEIVED
+  MILESTONE_UPDATED
+  CONTRACT_UPDATED
+  MESSAGE_RECEIVED
+}
+
+model Notification {
+  id            String           @id @default(uuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id])
+  title         String
+  message       String
+  type          NotificationType
+  isRead        Boolean          @default(false)
+  referenceId   String?  // ID of the related entity (milestone, contract, etc.)
+  referenceType String?  // Type of the related entity ('MILESTONE', 'CONTRACT', etc.)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("notifications")
+}
+
+model MilestoneProgress {
+  id          String         @id @default(uuid())
+  description String
+  status      MilestoneStatus
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  
+  // Relations
+  milestoneId String
+  milestone   Milestone      @relation(fields: [milestoneId], references: [id])
+  userId      String
+  user        User           @relation(fields: [userId], references: [id])
+  
+  @@map("milestone_progress")
 }
 
 model Message {
