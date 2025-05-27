@@ -9,18 +9,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { formatDistanceToNow } from 'date-fns';
-
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: string;
-  isRead: boolean;
-  createdAt: string;
-  referenceId?: string;
-  referenceType?: string;
-}
+import { NotificationItem } from '@/app/components/NotificationItem';
+import { Notification } from '@prisma/client';
 
 export function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -46,7 +36,7 @@ export function NotificationBell() {
     return () => clearInterval(interval);
   }, []);
 
-  const markAsRead = async (notificationId: string) => {
+  const handleNotificationRead = async (notificationId: string) => {
     try {
       const response = await fetch(`/api/notifications/${notificationId}`, {
         method: 'PATCH',
@@ -65,6 +55,11 @@ export function NotificationBell() {
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
+  };
+
+  const handleDelete = (id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+    setUnreadCount(prev => Math.max(0, prev - 1));
   };
 
   return (
@@ -88,7 +83,7 @@ export function NotificationBell() {
             </span>
           )}
         </div>
-        <ScrollArea className="h-[300px]">
+        <ScrollArea className="h-[400px]">
           {notifications.length === 0 ? (
             <div className="p-4 text-center text-sm text-muted-foreground">
               No notifications
@@ -96,27 +91,12 @@ export function NotificationBell() {
           ) : (
             <div className="divide-y">
               {notifications.map((notification) => (
-                <div
+                <NotificationItem
                   key={notification.id}
-                  className={`p-4 hover:bg-accent cursor-pointer ${
-                    !notification.isRead ? 'bg-accent/50' : ''
-                  }`}
-                  onClick={() => markAsRead(notification.id)}
-                >
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">{notification.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {notification.message}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(notification.createdAt), {
-                          addSuffix: true,
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                  notification={notification}
+                  onRead={handleNotificationRead}
+                  onDelete={handleDelete}
+                />
               ))}
             </div>
           )}
