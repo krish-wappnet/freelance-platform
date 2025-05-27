@@ -56,36 +56,16 @@ export async function GET(
             id: true,
             title: true,
             description: true,
-            budget: true,
-            deadline: true,
-            status: true,
+            skills: true,
             clientId: true,
             client: {
               select: {
                 id: true,
                 name: true,
                 avatar: true,
-                email: true,
-              }
-            }
-          }
-        },
-        client: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-            email: true,
-          }
-        },
-        freelancer: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-            email: true,
-            bio: true,
-          }
+              },
+            },
+          },
         },
         bid: {
           select: {
@@ -93,23 +73,30 @@ export async function GET(
             amount: true,
             deliveryTime: true,
             coverLetter: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
             freelancer: {
               select: {
                 id: true,
                 name: true,
                 avatar: true,
-                email: true,
                 bio: true,
-              }
-            }
-          }
+              },
+            },
+          },
         },
         milestones: {
-          orderBy: {
-            createdAt: 'asc',
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            amount: true,
+            dueDate: true,
+            status: true,
           },
-        }
-      }
+        },
+      },
     });
     
     if (!contract) {
@@ -118,39 +105,23 @@ export async function GET(
         { status: 404 }
       );
     }
-    
-    const isClient = user.id === contract.clientId;
-    const isFreelancer = user.id === contract.freelancerId;
 
-    if (isClient && !hasRole(user, 'CLIENT')) {
+    // Check if user has access to this contract
+    if (user.role === UserRole.FREELANCER && contract.freelancerId !== user.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
-        { status: 401 }
+        { status: 403 }
       );
     }
 
-    if (isFreelancer && !hasRole(user, 'FREELANCER')) {
+    if (user.role === UserRole.CLIENT && contract.clientId !== user.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
-        { status: 401 }
+        { status: 403 }
       );
     }
     
-    // Check if user is authorized to view this contract
-    if (
-      contract.freelancerId !== user.id &&
-      contract.clientId !== user.id &&
-      user.role !== UserRole.ADMIN
-    ) {
-      return NextResponse.json(
-        { error: 'You are not authorized to view this contract' },
-        { status: 401 }
-      );
-    }
-    
-
-    
-    return NextResponse.json({ contract }, { status: 200 });
+    return NextResponse.json(contract, { status: 200 });
   } catch (error) {
     console.error('Error fetching contract:', error);
     return NextResponse.json(

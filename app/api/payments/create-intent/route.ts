@@ -49,16 +49,25 @@ export async function POST(request: NextRequest) {
     // Create Stripe payment intent
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // Convert to cents
-      currency: 'usd',
+      currency: 'inr',
       metadata: {
         paymentId: payment.id,
         contractId: payment.contractId,
-        milestoneId: payment.milestoneId || '',
+        milestoneId: payment.milestoneId,
+      },
+      automatic_payment_methods: {
+        enabled: true,
       },
     });
 
+    console.log('Created payment intent:', {
+      intentId: paymentIntent.id,
+      paymentId: payment.id,
+      amount: paymentIntent.amount
+    });
+
     // Update payment with Stripe payment intent ID
-    await prisma.payment.update({
+    const updatedPayment = await prisma.payment.update({
       where: { id: payment.id },
       data: {
         paymentIntentId: paymentIntent.id,
@@ -66,8 +75,29 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Verify the update was successful
+    const verifiedPayment = await prisma.payment.findUnique({
+      where: { id: payment.id }
+    });
+
+    if (!verifiedPayment || verifiedPayment.paymentIntentId !== paymentIntent.id) {
+      console.error('Failed to update payment with intent ID:', {
+        paymentId: payment.id,
+        intentId: paymentIntent.id,
+        actualIntentId: verifiedPayment?.paymentIntentId
+      });
+      throw new Error('Failed to update payment with intent ID');
+    }
+
+    console.log('Successfully updated payment:', {
+      paymentId: verifiedPayment.id,
+      intentId: verifiedPayment.paymentIntentId,
+      status: verifiedPayment.status
+    });
+
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,
+      paymentId: payment.id,
       url: `/payment/${payment.id}?client_secret=${paymentIntent.client_secret}`,
     });
   } catch (error) {

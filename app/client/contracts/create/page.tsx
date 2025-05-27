@@ -141,10 +141,15 @@ export default function CreateContractPage() {
         },
         credentials: 'include',
         body: JSON.stringify({
-          bidId: bidId,  // Changed from proposalId to bidId
+          bidId: bidId,
           terms: data.terms,
-          totalAmount: data.totalAmount,
-          milestones: data.milestones,
+          amount: data.totalAmount,
+          milestones: data.milestones.map(milestone => ({
+            title: milestone.title,
+            description: milestone.description,
+            amount: milestone.amount,
+            dueDate: milestone.dueDate
+          }))
         }),
       });
       
@@ -205,8 +210,9 @@ export default function CreateContractPage() {
   return (
     <div className="container mx-auto py-8">
       <Card className="max-w-4xl mx-auto">
-        <CardHeader>
+        <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Create Contract</CardTitle>
+          <p className="text-muted-foreground">Fill in the details to create a new contract with milestones.</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
@@ -221,7 +227,7 @@ export default function CreateContractPage() {
                     id="terms"
                     {...register('terms')}
                     placeholder="Enter contract terms and conditions..."
-                    className="pl-8 min-h-[120px] w-full"
+                    className="pl-8 min-h-[120px] w-full resize-none"
                   />
                   {errors.terms && (
                     <p className="text-sm text-destructive mt-1">
@@ -255,114 +261,13 @@ export default function CreateContractPage() {
               </div>
             </div>
 
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold mb-4">Milestones</h3>
-              {milestones.map((_, index) => (
-                <Card key={index} className="mb-4">
-                  <CardHeader className="pb-0">
-                    <CardTitle className="text-lg font-semibold">
-                      Milestone {index + 1}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor={`milestone-${index}-title`} className="text-sm font-medium">
-                          <span className="text-destructive">*</span> Title
-                        </Label>
-                        <div className="relative">
-                          <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id={`milestone-${index}-title`}
-                            {...register(`milestones.${index}.title`)}
-                            placeholder="Enter milestone title"
-                            className="pl-8"
-                          />
-                        </div>
-                        {errors.milestones?.[index]?.title && (
-                          <p className="text-sm text-destructive">
-                            {errors.milestones[index].title.message}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor={`milestone-${index}-description`} className="text-sm font-medium">
-                          <span className="text-destructive">*</span> Description
-                        </Label>
-                        <div className="relative">
-                          <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Textarea
-                            id={`milestone-${index}-description`}
-                            {...register(`milestones.${index}.description`)}
-                            placeholder="Enter milestone description"
-                            className="pl-8 min-h-[80px]"
-                          />
-                        </div>
-                        {errors.milestones?.[index]?.description && (
-                          <p className="text-sm text-destructive">
-                            {errors.milestones[index].description.message}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="relative">
-                          <Label htmlFor={`milestone-${index}-amount`} className="text-sm font-medium block mb-2">
-                            <span className="text-destructive">*</span> Amount
-                          </Label>
-                          <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id={`milestone-${index}-amount`}
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            {...register(`milestones.${index}.amount`)}
-                            placeholder="₹0.00"
-                            className="pl-8 w-full"
-                          />
-                        </div>
-                        {errors.milestones?.[index]?.amount && (
-                          <p className="text-sm text-destructive mt-1">
-                            {errors.milestones[index].amount.message}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor={`milestone-${index}-dueDate`} className="text-sm font-medium">
-                          Due Date
-                        </Label>
-                        <div className="relative">
-                          <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id={`milestone-${index}-dueDate`}
-                            type="date"
-                            {...register(`milestones.${index}.dueDate`)}
-                            className="pl-8"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end gap-2 mt-4">
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => removeMilestone(index)}
-                      >
-                        Remove Milestone
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-
-              <div className="flex justify-end gap-2">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-lg font-semibold">Milestones</Label>
                 <Button
                   type="button"
                   variant="outline"
+                  size="sm"
                   onClick={addMilestone}
                   className="flex items-center gap-2"
                 >
@@ -370,22 +275,117 @@ export default function CreateContractPage() {
                   Add Milestone
                 </Button>
               </div>
+
+              <div className="space-y-6">
+                {milestones.map((_, index) => (
+                  <Card key={index} className="p-4">
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="font-medium">Milestone {index + 1}</h3>
+                      {index > 0 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeMilestone(index)}
+                          className="text-destructive hover:text-destructive/90"
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor={`milestones.${index}.title`}>Title</Label>
+                        <Input
+                          id={`milestones.${index}.title`}
+                          {...register(`milestones.${index}.title`)}
+                          placeholder="Enter milestone title"
+                        />
+                        {errors.milestones?.[index]?.title && (
+                          <p className="text-sm text-destructive">
+                            {errors.milestones[index]?.title?.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor={`milestones.${index}.amount`}>Amount</Label>
+                        <div className="relative">
+                          <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id={`milestones.${index}.amount`}
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            {...register(`milestones.${index}.amount`)}
+                            placeholder="₹0.00"
+                            className="pl-8"
+                          />
+                        </div>
+                        {errors.milestones?.[index]?.amount && (
+                          <p className="text-sm text-destructive">
+                            {errors.milestones[index]?.amount?.message}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-2">
+                      <Label htmlFor={`milestones.${index}.description`}>Description</Label>
+                      <Textarea
+                        id={`milestones.${index}.description`}
+                        {...register(`milestones.${index}.description`)}
+                        placeholder="Enter milestone description"
+                        className="min-h-[80px] resize-none"
+                      />
+                      {errors.milestones?.[index]?.description && (
+                        <p className="text-sm text-destructive">
+                          {errors.milestones[index]?.description?.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="mt-4 space-y-2">
+                      <Label htmlFor={`milestones.${index}.dueDate`}>Due Date (Optional)</Label>
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id={`milestones.${index}.dueDate`}
+                          type="date"
+                          {...register(`milestones.${index}.dueDate`)}
+                          className="pl-8"
+                        />
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+
+              {errors.milestones && !Array.isArray(errors.milestones) && (
+                <p className="text-sm text-destructive">
+                  {errors.milestones.message}
+                </p>
+              )}
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-4">
               <Button
-                type="submit"
-                disabled={loading}
-                className="flex items-center gap-2"
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
               >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading}>
                 {loading ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Creating...
                   </>
                 ) : (
                   <>
-                    <Check className="h-4 w-4" />
+                    <Check className="mr-2 h-4 w-4" />
                     Create Contract
                   </>
                 )}

@@ -17,9 +17,31 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ContractStage } from '@prisma/client';
+
+interface Contract {
+  id: string;
+  title: string;
+  description: string;
+  amount: number;
+  stage: ContractStage;
+  createdAt: string;
+  updatedAt: string;
+  project: {
+    id: string;
+    title: string;
+  };
+  bid: {
+    freelancer: {
+      id: string;
+      name: string;
+      avatar: string | null;
+    };
+  };
+}
 
 interface ContractListProps {
-  contracts: any[];
+  contracts: Contract[];
 }
 
 export default function ContractList({ contracts }: ContractListProps) {
@@ -56,10 +78,10 @@ export default function ContractList({ contracts }: ContractListProps) {
             <TableCell>
               <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6">
-                  <AvatarImage src={contract.proposal.freelancer.avatar || undefined} />
-                  <AvatarFallback>{contract.proposal.freelancer.name[0]}</AvatarFallback>
+                  <AvatarImage src={contract.bid.freelancer.avatar || undefined} />
+                  <AvatarFallback>{contract.bid.freelancer.name[0]}</AvatarFallback>
                 </Avatar>
-                <span>{contract.proposal.freelancer.name}</span>
+                <span>{contract.bid.freelancer.name}</span>
               </div>
             </TableCell>
             <TableCell>
@@ -67,26 +89,26 @@ export default function ContractList({ contracts }: ContractListProps) {
                 variant="outline" 
                 className={cn(
                   "capitalize",
-                  contract.status === "PROPOSED" && "bg-yellow-500/10 text-yellow-700 border-yellow-300",
-                  contract.status === "APPROVED" && "bg-green-500/10 text-green-700 border-green-300",
-                  contract.status === "IN_PROGRESS" && "bg-blue-500/10 text-blue-700 border-blue-300",
-                  contract.status === "COMPLETED" && "bg-gray-500/10 text-gray-700 border-gray-300",
-                  contract.status === "CANCELLED" && "bg-red-500/10 text-red-700 border-red-300",
-                  contract.status === "DISPUTED" && "bg-orange-500/10 text-orange-700 border-orange-300",
+                  contract.stage === "PROPOSAL" && "bg-yellow-500/10 text-yellow-700 border-yellow-300",
+                  contract.stage === "APPROVAL" && "bg-green-500/10 text-green-700 border-green-300",
+                  contract.stage === "PAYMENT" && "bg-blue-500/10 text-blue-700 border-blue-300",
+                  contract.stage === "REVIEW" && "bg-purple-500/10 text-purple-700 border-purple-300",
+                  contract.stage === "COMPLETED" && "bg-gray-500/10 text-gray-700 border-gray-300",
+                  contract.stage === "CANCELLED" && "bg-red-500/10 text-red-700 border-red-300"
                 )}
               >
-                {contract.status.toLowerCase().replace('_', ' ')}
+                {contract.stage.toLowerCase().replace('_', ' ')}
               </Badge>
             </TableCell>
             <TableCell>
-              ₹{contract.totalAmount}
+              ₹{contract.amount}
             </TableCell>
             <TableCell>
               {formatDistanceToNow(new Date(contract.updatedAt), { addSuffix: true })}
             </TableCell>
             <TableCell className="text-right">
               <Link 
-                href={`/client/contracts/₹{contract.id}`}
+                href={`/client/contracts/${contract.id}`}
                 className="inline-flex items-center text-sm text-primary hover:underline"
               >
                 View <ExternalLink className="ml-1 h-3 w-3" />

@@ -18,16 +18,26 @@ export async function POST(req: Request) {
 
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      console.log('Received webhook event:', event.type);
     } catch (err: any) {
+      console.error('Webhook signature verification failed:', err.message);
       return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
     }
 
     if (event.type === 'payment_intent.succeeded') {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      console.log('Processing payment intent:', {
+        id: paymentIntent.id,
+        metadata: paymentIntent.metadata,
+        amount: paymentIntent.amount,
+        status: paymentIntent.status
+      });
       
-      // Find the payment by paymentIntentId
-      const payment = await prisma.payment.findFirst({
-        where: { paymentIntentId: paymentIntent.id },
+      // Try to find the payment by paymentIntentId first
+      let payment = await prisma.payment.findFirst({
+        where: { 
+          paymentIntentId: paymentIntent.id 
+        },
         include: {
           milestone: {
             include: {
@@ -37,24 +47,81 @@ export async function POST(req: Request) {
         }
       });
 
-      if (!payment) {
-        throw new Error('Payment not found');
+      // If not found by paymentIntentId, try to find by paymentId from metadata
+      if (!payment && paymentIntent.metadata.paymentId) {
+        payment = await prisma.payment.findUnique({
+          where: { 
+            id: paymentIntent.metadata.paymentId 
+          },
+          include: {
+            milestone: {
+              include: {
+                contract: true
+              }
+            }
+          }
+        });
+
+        // If found by paymentId but paymentIntentId is not set, update it
+        if (payment && !payment.paymentIntentId) {
+          payment = await prisma.payment.update({
+            where: { id: payment.id },
+            data: { paymentIntentId: paymentIntent.id },
+            include: {
+              milestone: {
+                include: {
+                  contract: true
+                }
+              }
+            }
+          });
+        }
       }
 
+      if (!payment) {
+        console.error('Payment not found for payment intent:', {
+          intentId: paymentIntent.id,
+          metadata: paymentIntent.metadata
+        });
+        return NextResponse.json(
+          { error: 'Payment not found' },
+          { status: 404 }
+        );
+      }
+
+      console.log('Found payment:', {
+        id: payment.id,
+        intentId: payment.paymentIntentId,
+        status: payment.status,
+        amount: payment.amount
+      });
+
       // Update payment status
-      await prisma.payment.update({
+      const updatedPayment = await prisma.payment.update({
         where: { id: payment.id },
         data: { 
-          status: 'COMPLETED'
+          status: 'COMPLETED',
+          completedAt: new Date()
         }
       });
 
+      console.log('Updated payment status:', {
+        id: updatedPayment.id,
+        status: updatedPayment.status,
+        completedAt: updatedPayment.completedAt
+      });
+
       // Update milestone status
-      await prisma.milestone.update({
+      const updatedMilestone = await prisma.milestone.update({
         where: { id: payment.milestoneId },
         data: { 
-          status: 'COMPLETED'
+          status: 'PAID'
         }
+      });
+
+      console.log('Updated milestone status:', {
+        id: updatedMilestone.id,
+        status: updatedMilestone.status
       });
 
       // Create notification for freelancer
@@ -63,10 +130,11 @@ export async function POST(req: Request) {
           userId: payment.milestone.contract.freelancerId,
           type: 'PAYMENT_RECEIVED',
           title: 'Payment Received',
-          message: `You have received payment of $${payment.amount} for milestone "${payment.milestone.title}"`,
+          message: `You have received payment of ₹${payment.amount} for milestone "${payment.milestone.title}"`,
           referenceId: payment.id,
           referenceType: 'PAYMENT',
-          amount: payment.amount
+          amount: payment.amount,
+          isRead: false
         }
       });
 
@@ -76,7 +144,7 @@ export async function POST(req: Request) {
         include: { milestones: true }
       });
 
-      if (contract && contract.milestones.every(m => m.status === 'COMPLETED')) {
+      if (contract && contract.milestones.every(m => m.status === 'PAID')) {
         // Update contract status
         await prisma.contract.update({
           where: { id: contract.id },
@@ -91,23 +159,27 @@ export async function POST(req: Request) {
           data: [
             {
               userId: contract.clientId,
-              type: 'CONTRACT_UPDATED',
+              type: 'CONTRACT_COMPLETED',
               title: 'Contract Completed',
               message: `Contract "${contract.title}" has been completed successfully`,
               referenceId: contract.id,
-              referenceType: 'CONTRACT'
+              referenceType: 'CONTRACT',
+              isRead: false
             },
             {
               userId: contract.freelancerId,
-              type: 'CONTRACT_UPDATED',
+              type: 'CONTRACT_COMPLETED',
               title: 'Contract Completed',
               message: `Contract "${contract.title}" has been completed successfully`,
               referenceId: contract.id,
-              referenceType: 'CONTRACT'
+              referenceType: 'CONTRACT',
+              isRead: false
             }
           ]
         });
       }
+
+      console.log('Successfully processed payment intent:', paymentIntent.id);
     }
 
     return NextResponse.json({ received: true });

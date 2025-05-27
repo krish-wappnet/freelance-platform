@@ -7,7 +7,7 @@ import { z } from 'zod';
 const contractSchema = z.object({
   bidId: z.string().uuid(),
   terms: z.string().min(10),
-  totalAmount: z.number().positive(),
+  amount: z.number().positive(),
   milestones: z.array(
     z.object({
       title: z.string().min(2),
@@ -19,7 +19,7 @@ const contractSchema = z.object({
 }).refine(
   (data) => {
     const totalMilestoneAmount = data.milestones.reduce((sum, milestone) => sum + milestone.amount, 0);
-    return Math.abs(totalMilestoneAmount - data.totalAmount) < 0.01; // Allow for small floating point differences
+    return Math.abs(totalMilestoneAmount - data.amount) < 0.01; // Allow for small floating point differences
   },
   {
     message: 'The sum of milestone amounts must equal the total contract amount',
@@ -133,7 +133,6 @@ export async function GET(request: NextRequest) {
             amount: true,
           },
         },
-
       },
       orderBy: {
         createdAt: 'desc',
@@ -148,6 +147,7 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+}
 
 /**
  * @swagger
@@ -175,7 +175,7 @@ export async function GET(request: NextRequest) {
  *       500:
  *         description: Internal server error
  */
-async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET_BY_ID(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getCurrentUser();
     
@@ -267,7 +267,6 @@ async function GET(request: NextRequest, { params }: { params: { id: string } })
       { status: 500 }
     );
   }
-}
 }
 
 /**
@@ -423,7 +422,7 @@ export async function POST(request: NextRequest) {
       0
     );
     
-    if (Math.abs(milestoneTotalAmount - result.data.totalAmount) > 0.01) {
+    if (Math.abs(milestoneTotalAmount - result.data.amount) > 0.01) {
       return NextResponse.json(
         { error: 'The sum of milestone amounts must equal the total contract amount' },
         { status: 400 }
@@ -435,32 +434,40 @@ export async function POST(request: NextRequest) {
       // Create contract
       const newContract = await tx.contract.create({
         data: {
-          bidId: bidId,
           projectId: bid.projectId,
-          clientId: bid.project.clientId,
+          clientId: user.id,
           freelancerId: bid.freelancerId,
+          bidId: bid.id,
           title: bid.project.title,
-          description: bid.project.description,
-          amount: bid.amount,
+          description: terms,
+          amount: result.data.amount,
           stage: ContractStage.PROPOSAL,
+          milestones: {
+            create: milestones.map(milestone => ({
+              title: milestone.title,
+              description: milestone.description,
+              amount: milestone.amount,
+              dueDate: milestone.dueDate ? new Date(milestone.dueDate) : undefined,
+              status: 'PENDING',
+              project: {
+                connect: {
+                  id: bid.projectId
+                }
+              },
+              freelancer: {
+                connect: {
+                  id: bid.freelancerId
+                }
+              }
+            }))
+          }
         },
+        include: {
+          project: true,
+          bid: true,
+          milestones: true
+        }
       });
-      
-      // Create milestones
-      for (const milestone of milestones) {
-        await tx.milestone.create({
-          data: {
-            contractId: newContract.id,
-            projectId: bid.projectId,
-            title: milestone.title,
-            description: milestone.description,
-            amount: milestone.amount,
-            dueDate: milestone.dueDate ? new Date(milestone.dueDate) : undefined,
-          },
-        });
-      }
-      
-
       
       return newContract;
     });

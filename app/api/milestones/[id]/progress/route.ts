@@ -160,13 +160,15 @@ export async function POST(
       switch (status) {
         case 'IN_PROGRESS':
           notificationMessage = `Freelancer ${user.name} has started working on milestone: ${milestone.title}`;
+          notificationType = 'MILESTONE_UPDATED';
           break;
         case 'COMPLETED':
           notificationMessage = `Freelancer ${user.name} has marked milestone as completed: ${milestone.title}`;
+          notificationType = 'MILESTONE_COMPLETED';
           break;
         case 'PAYMENT_REQUESTED':
           notificationMessage = `Freelancer ${user.name} has requested payment for milestone: ${milestone.title}`;
-          notificationType = 'PAYMENT_REQUEST';
+          notificationType = 'PAYMENT_RECEIVED';
           
           // Create payment record
           const payment = await prisma.payment.create({
@@ -175,16 +177,19 @@ export async function POST(
               contractId: milestone.contractId,
               milestoneId: milestone.id,
               status: 'PENDING',
+              clientId: milestone.contract.project.clientId,
+              freelancerId: milestone.contract.freelancerId
             },
           });
 
+          // Create notification for client
           await prisma.notification.create({
             data: {
               userId: milestone.contract.project.clientId,
-              title: notificationTitle,
-              message: notificationMessage,
-              type: notificationType,
-              referenceId: payment.id, // Use payment ID instead of milestone ID
+              title: 'Payment Request',
+              message: `Freelancer ${user.name} has requested payment of $${milestone.amount} for milestone: ${milestone.title}`,
+              type: 'PAYMENT_RECEIVED',
+              referenceId: payment.id,
               referenceType: 'PAYMENT',
               amount: milestone.amount,
               isRead: false,
@@ -193,11 +198,14 @@ export async function POST(
           break;
         case 'PAID':
           notificationMessage = `Payment has been released for milestone: ${milestone.title}`;
+          notificationType = 'PAYMENT_RECEIVED';
           break;
         default:
           notificationMessage = `Milestone status has been updated to ${status.toLowerCase().replace('_', ' ')}: ${milestone.title}`;
+          notificationType = 'MILESTONE_UPDATED';
       }
 
+      // Create notification for status change
       await prisma.notification.create({
         data: {
           userId: milestone.contract.project.clientId,

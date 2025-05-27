@@ -90,10 +90,13 @@ model User {
 
   // Client relations
   postedProjects      Project[]       @relation("ClientToProject")
+  paymentsAsClient    Payment[]       @relation("ClientPayments")
   
   // Freelancer relations
   bids                Bid[]
   contractsAsFreelancer Contract[] @relation("FreelancerToContract")
+  paymentsAsFreelancer Payment[]   @relation("FreelancerPayments")
+  milestones          Milestone[]  @relation("FreelancerMilestones")
   
   // Common relations
   contractsAsClient   Contract[] @relation("ClientToContract")
@@ -284,6 +287,10 @@ model Payment {
   milestoneId     String
   contract        Contract       @relation(fields: [contractId], references: [id])
   contractId      String
+  clientId        String
+  client          User           @relation("ClientPayments", fields: [clientId], references: [id])
+  freelancerId    String
+  freelancer      User           @relation("FreelancerPayments", fields: [freelancerId], references: [id])
 
   @@map("payments")
 }

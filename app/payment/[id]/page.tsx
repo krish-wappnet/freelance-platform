@@ -79,7 +79,7 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
         </CardHeader>
         <CardContent>
           <div className="mb-4">
-            <p className="text-gray-600">Amount: ${paymentDetails.amount.toFixed(2)}</p>
+            <p className="text-gray-600">Amount: ₹{paymentDetails.amount.toFixed(2)}</p>
             <p className="text-gray-600">{paymentDetails.description}</p>
           </div>
           <Elements
