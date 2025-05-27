@@ -14,6 +14,7 @@ import {
   Settings,
   HelpCircle,
   ChevronLeft,
+  ChevronRight,
   Menu,
   Zap,
   Bell,
@@ -103,101 +104,172 @@ export default function Sidebar({ user, role, activePath }: SidebarProps) {
     };
   }, []);
 
-
-
-  const bottomNavItems: NavItem[] = [
-    {
-      title: 'Settings',
-      href: '/dashboard/settings',
-      icon: <Settings className="h-5 w-5" />,
-    },
-    {
-      title: 'Help & Support',
-      href: '/help',
-      icon: <HelpCircle className="h-5 w-5" />,
-    },
-  ];
+  // Update main content margin when sidebar state changes
+  useEffect(() => {
+    const mainContent = document.querySelector('main');
+    if (mainContent) {
+      if (isCollapsed) {
+        mainContent.classList.remove('md:ml-[200px]', 'lg:ml-[250px]');
+        mainContent.classList.add('md:ml-16', 'lg:ml-16');
+      } else {
+        mainContent.classList.remove('md:ml-16', 'lg:ml-16');
+        mainContent.classList.add('md:ml-[200px]', 'lg:ml-[250px]');
+      }
+    }
+  }, [isCollapsed]);
 
   return (
-    <div
-      className={cn(
-        'fixed left-0 top-0 z-50 h-full border-r bg-background',
-        isCollapsed ? 'w-16' : 'w-64',
-        isMobile ? 'md:w-64' : 'w-64'
-      )}
-    >
-      <div className="flex items-center justify-between px-4 py-2">
-        <div className={cn("flex items-center gap-2", isCollapsed && "justify-center w-full")}>
-          <Zap className="h-6 w-6 text-primary" />
-          {!isCollapsed && <span className="text-xl font-bold">WorkWave</span>}
-        </div>
-      </div>
-      <div className="flex h-screen flex-col">
-        <div className="flex items-center gap-4 p-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="lg:hidden h-8 w-8"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex items-center gap-2">
-            <Avatar className="h-8 w-8">
+    <>
+      <div
+        className={cn(
+          'fixed left-0 top-0 z-50 h-screen border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-300 ease-in-out shadow-lg',
+          isCollapsed ? 'w-[72px]' : 'w-64',
+          isMobile ? 'w-[72px] md:w-64' : ''
+        )}
+      >
+        <div className="flex h-full flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between px-3 py-2 border-b">
+            <div className={cn(
+              "flex items-center gap-2 transition-all duration-300",
+              isCollapsed ? "justify-center w-full" : "w-auto"
+            )}>
+              <div className={cn(
+                "p-1.5 rounded-lg bg-primary/10 transition-all duration-300",
+                isCollapsed ? "p-2" : "p-1.5"
+              )}>
+                <Zap className={cn(
+                  "text-primary transition-all duration-300",
+                  isCollapsed ? "h-7 w-7" : "h-6 w-6"
+                )} />
+              </div>
+              <span className={cn(
+                "text-xl font-bold transition-all duration-300",
+                isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
+              )}>
+                WorkWave
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className={cn(
+                "h-8 w-8 hover:bg-primary/10 rounded-full transition-all duration-300",
+                isCollapsed ? "absolute -right-4 top-6 bg-background shadow-md border" : "absolute -right-4 top-6 bg-background shadow-md border"
+              )}
+            >
+              {isCollapsed ? (
+                <ChevronRight className="h-4 w-4 text-primary" />
+              ) : (
+                <ChevronLeft className="h-4 w-4 text-primary" />
+              )}
+            </Button>
+          </div>
+
+          {/* User Profile */}
+          <div className={cn(
+            "flex items-center justify-center p-2 border-b transition-all duration-300",
+            isCollapsed ? "py-3" : ""
+          )}>
+            <Avatar className={cn(
+              "transition-all duration-300 ring-2 ring-primary/10",
+              isCollapsed ? "h-10 w-10" : "h-8 w-8"
+            )}>
               <AvatarImage src={user?.avatar || undefined} alt={user?.name || 'User'} />
-              <AvatarFallback>{user?.name?.[0] || 'U'}</AvatarFallback>
+              <AvatarFallback className="bg-primary/10 text-primary">
+                {user?.name?.[0] || 'U'}
+              </AvatarFallback>
             </Avatar>
-            <div className="flex flex-col">
-              <span className="font-medium">{user?.name || 'User'}</span>
-              <span className="text-sm text-muted-foreground">
+            <div className={cn(
+              "flex flex-col transition-all duration-300",
+              isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100 ml-2"
+            )}>
+              <span className="font-medium text-sm">{user?.name || 'User'}</span>
+              <span className="text-xs text-muted-foreground">
                 {role === 'CLIENT' ? 'Client' : 'Freelancer'}
               </span>
             </div>
           </div>
-        </div>
 
-        <div className="flex flex-col gap-4">
-          <div className="flex-1">
-            <div className="px-4 py-2">
-              <div className="space-y-1">
+          {/* Navigation */}
+          <div className="flex-1 py-2">
+            <div className={cn(
+              "px-2 transition-all duration-300",
+              isCollapsed ? "px-2" : "px-3"
+            )}>
+              <div className="space-y-0.5">
                 {navItems.map((item) => (
                   <Link
                     key={item.title}
                     href={item.href}
                     className={cn(
-                      'group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-muted',
+                      'group flex items-center rounded-lg px-2 py-1.5 text-sm font-medium transition-all duration-300',
                       pathname === item.href
-                        ? 'bg-muted text-primary'
-                        : 'text-muted-foreground'
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                      isCollapsed ? 'justify-center' : 'justify-start'
                     )}
                   >
-                    {React.cloneElement(item.icon, { className: 'mr-2 h-4 w-4' })}
-                    {item.title}
+                    <div className={cn(
+                      "p-1.5 rounded-md transition-all duration-300",
+                      pathname === item.href ? "bg-primary/20" : "bg-transparent group-hover:bg-background/50",
+                      isCollapsed ? "p-1.5" : "p-1.5"
+                    )}>
+                      {React.cloneElement(item.icon, { 
+                        className: cn(
+                          'transition-all duration-300',
+                          isCollapsed ? 'h-5 w-5' : 'h-5 w-5'
+                        )
+                      })}
+                    </div>
+                    <span className={cn(
+                      "transition-all duration-300",
+                      isCollapsed ? "w-0 opacity-0 ml-0" : "w-auto opacity-100 ml-2"
+                    )}>
+                      {item.title}
+                    </span>
                   </Link>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="border-t p-4">
-            <div className="flex items-center justify-center gap-2">
+          {/* Logout Button */}
+          <div className="border-t p-2">
+            <div className="flex items-center justify-center">
               <Button
-                variant="destructive"
-                className="flex items-center gap-2 bg-black hover:bg-black/90 text-white px-6 py-2 rounded-lg transition-all duration-200 min-w-[180px]"
+                variant="ghost"
+                className={cn(
+                  "flex items-center gap-2 w-full transition-all duration-300",
+                  isCollapsed ? "px-1 justify-center" : "px-3"
+                )}
                 onClick={() => {
                   fetch('/api/auth/logout', { method: 'POST' })
                     .then(() => window.location.href = '/login')
                     .catch(err => console.error('Logout error:', err));
                 }}
               >
-                <Zap className="h-5 w-5" />
-                <span className="text-sm font-medium">Logout</span>
+                <div className={cn(
+                  "p-1.5 rounded-md bg-red-500/10 transition-all duration-300",
+                  isCollapsed ? "p-1.5" : "p-1.5"
+                )}>
+                  <Zap className={cn(
+                    "text-red-500 transition-all duration-300",
+                    isCollapsed ? "h-5 w-5" : "h-5 w-5"
+                  )} />
+                </div>
+                <span className={cn(
+                  "text-sm font-medium transition-all duration-300",
+                  isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
+                )}>
+                  Logout
+                </span>
               </Button>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
-
 }

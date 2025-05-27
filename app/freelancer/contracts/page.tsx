@@ -9,7 +9,7 @@ import { useAuth } from '@/lib/client-auth';
 import { Badge } from '@/components/ui/badge';
 import { CreditCard, DollarSign, Clock, Calendar } from 'lucide-react';
 import { UserRole, ContractStage } from '@prisma/client';
-import { cn } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -116,6 +116,25 @@ export default function FreelancerContractsPage() {
     fetchContracts();
   }, [toast]);
 
+  const getStageColor = (stage: ContractStage) => {
+    switch (stage) {
+      case ContractStage.PROPOSAL:
+        return 'bg-yellow-100 text-yellow-800';
+      case ContractStage.APPROVAL:
+        return 'bg-blue-100 text-blue-800';
+      case ContractStage.PAYMENT:
+        return 'bg-purple-100 text-purple-800';
+      case ContractStage.REVIEW:
+        return 'bg-orange-100 text-orange-800';
+      case ContractStage.COMPLETED:
+        return 'bg-green-100 text-green-800';
+      case ContractStage.CANCELLED:
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -157,6 +176,7 @@ export default function FreelancerContractsPage() {
                   <TableHead>Amount</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -164,24 +184,20 @@ export default function FreelancerContractsPage() {
                 {contracts.map((contract) => (
                   <TableRow key={contract.id}>
                     <TableCell className="font-medium">{contract.title}</TableCell>
-                    <TableCell>₹{contract.bid.amount.toLocaleString()}</TableCell>
-                    <TableCell>{contract.project.client.name}</TableCell>
+                    <TableCell>
+                      {contract.bid?.amount ? `₹${contract.bid.amount.toLocaleString()}` : 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      {contract.project?.client?.name || 'N/A'}
+                    </TableCell>
                     <TableCell>
                       <Badge
-                        variant="outline"
-                        className={cn(
-                          "capitalize",
-                          contract.stage === ContractStage.PROPOSAL && "bg-yellow-500/10 text-yellow-700 border-yellow-300",
-                          contract.stage === ContractStage.APPROVAL && "bg-blue-500/10 text-blue-700 border-blue-300",
-                          contract.stage === ContractStage.PAYMENT && "bg-green-500/10 text-green-700 border-green-300",
-                          contract.stage === ContractStage.REVIEW && "bg-purple-500/10 text-purple-700 border-purple-300",
-                          contract.stage === ContractStage.COMPLETED && "bg-green-500/10 text-green-700 border-green-300",
-                          contract.stage === ContractStage.CANCELLED && "bg-red-500/10 text-red-700 border-red-300"
-                        )}
+                        className={getStageColor(contract.stage)}
                       >
                         {contract.stage}
                       </Badge>
                     </TableCell>
+                    <TableCell>{formatDate(contract.createdAt)}</TableCell>
                     <TableCell>
                       <Dialog>
                         <DialogTrigger asChild>
@@ -200,10 +216,12 @@ export default function FreelancerContractsPage() {
                                 <h3 className="font-medium mb-2">Financial Details</h3>
                                 <div className="flex items-center gap-2">
                                   <DollarSign className="h-5 w-5 text-muted-foreground" />
-                                  <span className="text-2xl font-semibold">₹{contract.bid.amount.toLocaleString()}</span>
+                                  <span className="text-2xl font-semibold">
+                                    {contract.bid?.amount ? `₹${contract.bid.amount.toLocaleString()}` : 'N/A'}
+                                  </span>
                                 </div>
                                 <div className="mt-2 text-sm text-muted-foreground">
-                                  Delivery Time: {contract.bid.deliveryTime} days
+                                  Delivery Time: {contract.bid?.deliveryTime || 'N/A'} days
                                 </div>
                               </div>
                               <div>
@@ -228,28 +246,30 @@ export default function FreelancerContractsPage() {
                             <div>
                               <h3 className="font-medium mb-2">Client Information</h3>
                               <div className="flex items-center gap-2">
-                                <span className="font-medium">{contract.project.client.name}</span>
+                                <span className="font-medium">{contract.project?.client?.name || 'N/A'}</span>
                               </div>
                             </div>
 
                             <div>
                               <h3 className="font-medium mb-2">Project Description</h3>
-                              <p className="text-muted-foreground">{contract.description}</p>
+                              <p className="text-muted-foreground">{contract.description || 'No description available'}</p>
                             </div>
 
                             <div>
                               <h3 className="font-medium mb-2">Cover Letter</h3>
-                              <p className="text-muted-foreground">{contract.bid.coverLetter}</p>
+                              <p className="text-muted-foreground">{contract.bid?.coverLetter || 'No cover letter available'}</p>
                             </div>
 
                             <div>
                               <h3 className="font-medium mb-2">Milestones</h3>
                               <div className="space-y-3">
-                                {contract.milestones.map((milestone) => (
+                                {contract.milestones?.map((milestone) => (
                                   <div key={milestone.id} className="flex items-center justify-between p-3 rounded-md bg-muted">
                                     <div className="flex items-center gap-2">
                                       <span className="font-medium">{milestone.title}</span>
-                                      <span className="text-sm text-muted-foreground">₹{milestone.amount.toLocaleString()}</span>
+                                      <span className="text-sm text-muted-foreground">
+                                        {milestone.amount ? `₹${milestone.amount.toLocaleString()}` : 'N/A'}
+                                      </span>
                                     </div>
                                     <Badge
                                       variant="outline"
@@ -262,7 +282,7 @@ export default function FreelancerContractsPage() {
                                       {milestone.status}
                                     </Badge>
                                   </div>
-                                ))}
+                                )) || 'No milestones available'}
                               </div>
                             </div>
                           </div>

@@ -26,14 +26,14 @@ export default async function ClientLayout({
         role={user.role as 'CLIENT' | 'FREELANCER'}
         activePath="/client"
       />
-      <main className="flex-1 ml-0 md:ml-[200px] lg:ml-[250px]">
+      <main className="flex-1 ml-0 md:ml-[200px] lg:ml-[250px] transition-all duration-300">
         <div className="border-b">
           <div className="flex items-center justify-between h-16 px-4">
             <h1 className="text-lg font-semibold">Client Dashboard</h1>
             <NotificationBell />
           </div>
         </div>
-        <div>
+        <div className="p-8 pt-6">
           {children}
         </div>
       </main>

@@ -90,53 +90,41 @@ export async function GET(request: NextRequest) {
     }
     
     const contracts = await prisma.contract.findMany({
-      where,
+      where: {
+        OR: [
+          { clientId: user.id },
+          { freelancerId: user.id }
+        ]
+      },
       include: {
         project: {
           select: {
             id: true,
-            title: true,
-            clientId: true,
-            client: {
-              select: {
-                id: true,
-                name: true,
-                avatar: true,
-              },
-            },
-          },
+            title: true
+          }
         },
         bid: {
           select: {
-            id: true,
-            amount: true,
-            deliveryTime: true,
-            coverLetter: true,
-            status: true,
-            createdAt: true,
-            updatedAt: true,
             freelancer: {
               select: {
                 id: true,
                 name: true,
-                avatar: true,
-                bio: true,
-              },
-            },
-          },
+                avatar: true
+              }
+            }
+          }
         },
         milestones: {
           select: {
             id: true,
             title: true,
-            status: true,
-            amount: true,
-          },
-        },
+            status: true
+          }
+        }
       },
       orderBy: {
-        createdAt: 'desc',
-      },
+        updatedAt: 'desc'
+      }
     });
     
     return NextResponse.json({ contracts }, { status: 200 });
