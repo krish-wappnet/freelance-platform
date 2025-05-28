@@ -6,13 +6,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FreelancerEarningsDashboard } from '@/components/dashboard/freelancer-earnings-dashboard';
 import ProjectList from '@/components/projects/project-list';
 import ContractList from '@/components/contracts/contract-list';
-import { Loader2, Briefcase, FileText, Users } from 'lucide-react';
+import { Loader2, Briefcase, FileText, DollarSign, TrendingUp, Calendar } from 'lucide-react';
 import { UserRole, ContractStage } from '@prisma/client';
+import { format } from 'date-fns';
 
 interface DashboardStats {
   totalProjects: number;
   activeContracts: number;
   totalEarnings: number;
+  monthlyEarnings: number;
+  completedProjects: number;
+  averageProjectValue: number;
 }
 
 interface Project {
@@ -43,6 +47,7 @@ interface Contract {
       avatar: string | null;
     };
   };
+  milestones: any[];
 }
 
 export default function FreelancerDashboard() {
@@ -94,53 +99,107 @@ export default function FreelancerDashboard() {
   return (
     <div className="flex-1 space-y-8 p-8 pt-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Freelancer Dashboard</h1>
+        <div className="text-sm text-muted-foreground">
+          Last updated: {format(new Date(), 'PPP')}
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
             <Briefcase className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.totalProjects || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats?.completedProjects || 0} completed
+            </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Contracts</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.activeContracts || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              In progress
+            </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{stats?.totalEarnings?.toLocaleString() || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Lifetime earnings
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Monthly Earnings</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₹{stats?.monthlyEarnings?.toLocaleString() || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              This month
+            </p>
           </CardContent>
         </Card>
       </div>
 
       <Tabs defaultValue="earnings" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="earnings">Earnings</TabsTrigger>
-          <TabsTrigger value="projects">Projects</TabsTrigger>
-          <TabsTrigger value="contracts">Contracts</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="earnings" className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4" />
+            Earnings
+          </TabsTrigger>
+          <TabsTrigger value="projects" className="flex items-center gap-2">
+            <Briefcase className="h-4 w-4" />
+            Projects
+          </TabsTrigger>
+          <TabsTrigger value="contracts" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Contracts
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="earnings" className="space-y-4">
-          <FreelancerEarningsDashboard />
+          <Card>
+            <CardHeader>
+              <CardTitle>Earnings Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FreelancerEarningsDashboard />
+            </CardContent>
+          </Card>
         </TabsContent>
         <TabsContent value="projects" className="space-y-4">
-          <ProjectList projects={projects} role={UserRole.FREELANCER} />
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Projects</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ProjectList projects={projects} role={UserRole.FREELANCER} />
+            </CardContent>
+          </Card>
         </TabsContent>
         <TabsContent value="contracts" className="space-y-4">
-          <ContractList contracts={contracts} />
+          <Card>
+            <CardHeader>
+              <CardTitle>Active Contracts</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ContractList contracts={contracts} />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
