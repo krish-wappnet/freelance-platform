@@ -1,11 +1,7 @@
 import { getCurrentUser } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-04-30.basil',
-});
+import stripe from '@/lib/stripe';
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,30 +71,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Verify the update was successful
-    const verifiedPayment = await prisma.payment.findUnique({
-      where: { id: payment.id }
-    });
-
-    if (!verifiedPayment || verifiedPayment.paymentIntentId !== paymentIntent.id) {
-      console.error('Failed to update payment with intent ID:', {
-        paymentId: payment.id,
-        intentId: paymentIntent.id,
-        actualIntentId: verifiedPayment?.paymentIntentId
-      });
-      throw new Error('Failed to update payment with intent ID');
-    }
-
-    console.log('Successfully updated payment:', {
-      paymentId: verifiedPayment.id,
-      intentId: verifiedPayment.paymentIntentId,
-      status: verifiedPayment.status
-    });
-
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,
-      paymentId: payment.id,
-      url: `/payment/${payment.id}?client_secret=${paymentIntent.client_secret}`,
+      paymentId: updatedPayment.id
     });
   } catch (error) {
     console.error('Error creating payment intent:', error);

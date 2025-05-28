@@ -30,6 +30,7 @@ interface Contract {
   startDate: string | null;
   endDate: string | null;
   termsAccepted: boolean;
+  terms: string;
   createdAt: string;
   updatedAt: string;
   projectId: string;
@@ -64,6 +65,7 @@ interface Contract {
   milestones: {
     id: string;
     title: string;
+    description?: string;
     status: string;
     amount: number;
   }[];
@@ -135,6 +137,71 @@ export default function FreelancerContractsPage() {
     }
   };
 
+  const handleTermsAcceptance = async (contractId: string) => {
+    try {
+      const response = await fetch(`/api/contracts/${contractId}/accept`, {
+        method: 'PUT',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to accept terms');
+      }
+
+      const updatedContract = await response.json();
+      setContracts(contracts.map(c => c.id === contractId ? updatedContract : c));
+      
+      toast({
+        title: 'Success',
+        description: 'Terms accepted successfully',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to accept terms',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const canAcceptTerms = (contract: Contract) => {
+    return !contract.termsAccepted && 
+           contract.stage === 'APPROVAL' && 
+           contract.freelancerId === user?.id;
+  };
+
+  const getStageDescription = (stage: ContractStage) => {
+    switch (stage) {
+      case ContractStage.PROPOSAL:
+        return 'Client is reviewing the contract terms';
+      case ContractStage.APPROVAL:
+        return 'Review and accept the contract terms';
+      case ContractStage.PAYMENT:
+        return 'Waiting for client payment';
+      case ContractStage.REVIEW:
+        return 'Project is in progress';
+      case ContractStage.COMPLETED:
+        return 'Project has been completed';
+      case ContractStage.CANCELLED:
+        return 'Contract has been cancelled';
+      default:
+        return '';
+    }
+  };
+
+  const getActionButton = (contract: Contract) => {
+    if (canAcceptTerms(contract)) {
+      return (
+        <Button
+          variant="outline"
+          onClick={() => handleTermsAcceptance(contract.id)}
+        >
+          Accept Terms
+        </Button>
+      );
+    }
+    return null;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -176,118 +243,215 @@ export default function FreelancerContractsPage() {
                   <TableHead>Amount</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead>Timeline</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {contracts.map((contract) => (
                   <TableRow key={contract.id}>
-                    <TableCell className="font-medium">{contract.title}</TableCell>
-                    <TableCell>
-                      {contract.bid?.amount ? `₹${contract.bid.amount.toLocaleString()}` : 'N/A'}
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col">
+                        <span>{contract.title}</span>
+                        <span className="text-xs text-muted-foreground">
+                          Created: {formatDate(contract.createdAt)}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell>
-                      {contract.project?.client?.name || 'N/A'}
+                      <div className="flex flex-col">
+                        <span className="font-medium">₹{contract.amount.toLocaleString()}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {contract.milestones.length} milestones
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        className={getStageColor(contract.stage)}
-                      >
-                        {contract.stage}
-                      </Badge>
+                      <div className="flex flex-col">
+                        <span>{contract.project?.client?.name || 'N/A'}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {contract.project?.title}
+                        </span>
+                      </div>
                     </TableCell>
-                    <TableCell>{formatDate(contract.createdAt)}</TableCell>
                     <TableCell>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" className="w-full">View Details</Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[600px]">
-                          <DialogHeader>
-                            <DialogTitle className="text-2xl font-bold">{contract.title}</DialogTitle>
-                            <DialogDescription className="text-muted-foreground">
-                              Contract Details
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="grid gap-6">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <h3 className="font-medium mb-2">Financial Details</h3>
-                                <div className="flex items-center gap-2">
-                                  <DollarSign className="h-5 w-5 text-muted-foreground" />
-                                  <span className="text-2xl font-semibold">
-                                    {contract.bid?.amount ? `₹${contract.bid.amount.toLocaleString()}` : 'N/A'}
-                                  </span>
+                      <div className="flex flex-col gap-1">
+                        <Badge className={getStageColor(contract.stage)}>
+                          {contract.stage}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {getStageDescription(contract.stage)}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs">
+                            {contract.startDate ? new Date(contract.startDate).toLocaleDateString() : 'Not started'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs">
+                            {contract.endDate ? new Date(contract.endDate).toLocaleDateString() : 'No deadline'}
+                          </span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        {getActionButton(contract)}
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline">View Details</Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <DialogTitle className="text-2xl font-bold">{contract.title}</DialogTitle>
+                                  <DialogDescription className="text-muted-foreground mt-1">
+                                    Created on {formatDate(contract.createdAt)}
+                                  </DialogDescription>
                                 </div>
-                                <div className="mt-2 text-sm text-muted-foreground">
-                                  Delivery Time: {contract.bid?.deliveryTime || 'N/A'} days
-                                </div>
+                                <Badge className={cn(
+                                  'ml-2',
+                                  contract.stage === 'PROPOSAL' ? 'bg-yellow-100 text-yellow-800' :
+                                  contract.stage === 'APPROVAL' ? 'bg-blue-100 text-blue-800' :
+                                  contract.stage === 'PAYMENT' ? 'bg-purple-100 text-purple-800' :
+                                  contract.stage === 'REVIEW' ? 'bg-orange-100 text-orange-800' :
+                                  contract.stage === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                                  'bg-red-100 text-red-800'
+                                )}>
+                                  {contract.stage}
+                                </Badge>
                               </div>
-                              <div>
-                                <h3 className="font-medium mb-2">Timeline</h3>
-                                <div className="flex flex-col gap-2">
-                                  <div className="flex items-center gap-2">
-                                    <Clock className="h-4 w-4 text-muted-foreground" />
-                                    <span className="text-sm">
-                                      {contract.startDate ? new Date(contract.startDate).toLocaleDateString() : 'Start date not set'}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                                    <span className="text-sm">
-                                      {contract.endDate ? new Date(contract.endDate).toLocaleDateString() : 'End date not set'}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <h3 className="font-medium mb-2">Client Information</h3>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">{contract.project?.client?.name || 'N/A'}</span>
-                              </div>
-                            </div>
+                            </DialogHeader>
 
-                            <div>
-                              <h3 className="font-medium mb-2">Project Description</h3>
-                              <p className="text-muted-foreground">{contract.description || 'No description available'}</p>
-                            </div>
+                            <div className="grid gap-6 py-4">
+                              {/* Overview Cards */}
+                              <div className="grid grid-cols-3 gap-4">
+                                <Card>
+                                  <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                                      Total Amount
+                                    </CardTitle>
+                                  </CardHeader>
+                                  <CardContent>
+                                    <div className="text-2xl font-bold">₹{contract.amount.toLocaleString()}</div>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {contract.milestones.length} milestones
+                                    </p>
+                                  </CardContent>
+                                </Card>
 
-                            <div>
-                              <h3 className="font-medium mb-2">Cover Letter</h3>
-                              <p className="text-muted-foreground">{contract.bid?.coverLetter || 'No cover letter available'}</p>
-                            </div>
-
-                            <div>
-                              <h3 className="font-medium mb-2">Milestones</h3>
-                              <div className="space-y-3">
-                                {contract.milestones?.map((milestone) => (
-                                  <div key={milestone.id} className="flex items-center justify-between p-3 rounded-md bg-muted">
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-medium">{milestone.title}</span>
-                                      <span className="text-sm text-muted-foreground">
-                                        {milestone.amount ? `₹${milestone.amount.toLocaleString()}` : 'N/A'}
-                                      </span>
+                                <Card>
+                                  <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                                      Timeline
+                                    </CardTitle>
+                                  </CardHeader>
+                                  <CardContent>
+                                    <div className="space-y-1">
+                                      <div className="flex items-center gap-2">
+                                        <Clock className="h-4 w-4 text-muted-foreground" />
+                                        <span className="text-sm">
+                                          {contract.startDate ? new Date(contract.startDate).toLocaleDateString() : 'Not started'}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                                        <span className="text-sm">
+                                          {contract.endDate ? new Date(contract.endDate).toLocaleDateString() : 'No deadline'}
+                                        </span>
+                                      </div>
                                     </div>
-                                    <Badge
-                                      variant="outline"
-                                      className={cn(
-                                        "capitalize",
-                                        milestone.status === "PENDING" && "bg-yellow-500/10 text-yellow-700 border-yellow-300",
-                                        milestone.status === "COMPLETED" && "bg-green-500/10 text-green-700 border-green-300"
-                                      )}
-                                    >
-                                      {milestone.status}
-                                    </Badge>
-                                  </div>
-                                )) || 'No milestones available'}
+                                  </CardContent>
+                                </Card>
+
+                                <Card>
+                                  <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                                      Project Details
+                                    </CardTitle>
+                                  </CardHeader>
+                                  <CardContent>
+                                    <div className="space-y-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-sm font-medium">Project:</span>
+                                        <span className="text-sm">{contract.project?.title}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-sm font-medium">Client:</span>
+                                        <span className="text-sm">{contract.project?.client?.name}</span>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
                               </div>
+
+                              {/* Terms and Conditions */}
+                              <Card>
+                                <CardHeader>
+                                  <CardTitle className="text-lg">Terms and Conditions</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <p className="text-sm text-muted-foreground">{contract.description}</p>
+                                  {canAcceptTerms(contract) && (
+                                    <Button
+                                      className="mt-4"
+                                      onClick={() => handleTermsAcceptance(contract.id)}
+                                    >
+                                      Accept Terms
+                                    </Button>
+                                  )}
+                                </CardContent>
+                              </Card>
+
+                              {/* Milestones */}
+                              <Card>
+                                <CardHeader>
+                                  <CardTitle className="text-lg">Milestones</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="space-y-4">
+                                    {contract.milestones.map((milestone) => (
+                                      <div key={milestone.id} className="border rounded-lg p-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                          <h4 className="font-medium">{milestone.title}</h4>
+                                          <Badge className={cn(
+                                            'ml-2',
+                                            milestone.status === 'PENDING' ? 'bg-blue-100 text-blue-800' :
+                                            milestone.status === 'IN_PROGRESS' ? 'bg-yellow-100 text-yellow-800' :
+                                            milestone.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                                            milestone.status === 'PAYMENT_REQUESTED' ? 'bg-purple-100 text-purple-800' :
+                                            milestone.status === 'PAID' ? 'bg-gray-100 text-gray-800' :
+                                            'bg-red-100 text-red-800'
+                                          )}>
+                                            {milestone.status}
+                                          </Badge>
+                                        </div>
+                                        {milestone.description && (
+                                          <p className="text-sm text-muted-foreground mb-2">
+                                            {milestone.description}
+                                          </p>
+                                        )}
+                                        <div className="flex justify-between items-center">
+                                          <span className="text-sm font-medium">
+                                            ₹{milestone.amount?.toLocaleString() ?? 'N/A'}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </CardContent>
+                              </Card>
                             </div>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

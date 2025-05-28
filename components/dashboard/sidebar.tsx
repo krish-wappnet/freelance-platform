@@ -19,6 +19,7 @@ import {
   Zap,
   Bell,
   Milestone,
+  LogOut,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -236,7 +237,7 @@ export default function Sidebar({ user, role, activePath }: SidebarProps) {
           </div>
 
           {/* Logout Button */}
-          <div className="border-t p-2">
+          <div className="border-t p-2 mt-auto mb-4">
             <div className="flex items-center justify-center">
               <Button
                 variant="ghost"
@@ -254,7 +255,7 @@ export default function Sidebar({ user, role, activePath }: SidebarProps) {
                   "p-1.5 rounded-md bg-red-500/10 transition-all duration-300",
                   isCollapsed ? "p-1.5" : "p-1.5"
                 )}>
-                  <Zap className={cn(
+                  <LogOut className={cn(
                     "text-red-500 transition-all duration-300",
                     isCollapsed ? "h-5 w-5" : "h-5 w-5"
                   )} />
