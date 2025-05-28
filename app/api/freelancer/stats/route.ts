@@ -10,14 +10,10 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get total projects (projects where freelancer has bids)
-    const totalProjects = await prisma.project.count({
+    // Get total projects (contracts)
+    const totalProjects = await prisma.contract.count({
       where: {
-        bids: {
-          some: {
-            freelancerId: user.id
-          }
-        }
+        freelancerId: user.id
       }
     });
 
@@ -31,6 +27,14 @@ export async function GET() {
       }
     });
 
+    // Get completed projects
+    const completedProjects = await prisma.contract.count({
+      where: {
+        freelancerId: user.id,
+        stage: ContractStage.COMPLETED
+      }
+    });
+
     // Get total earnings
     const payments = await prisma.payment.findMany({
       where: {
@@ -40,16 +44,33 @@ export async function GET() {
         status: 'COMPLETED'
       },
       select: {
-        amount: true
+        amount: true,
+        completedAt: true
       }
     });
 
     const totalEarnings = payments.reduce((sum, payment) => sum + payment.amount, 0);
 
+    // Calculate monthly earnings
+    const currentDate = new Date();
+    const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    
+    const monthlyEarnings = payments
+      .filter(payment => payment.completedAt && new Date(payment.completedAt) >= firstDayOfMonth)
+      .reduce((sum, payment) => sum + payment.amount, 0);
+
+    // Calculate average project value
+    const averageProjectValue = totalProjects > 0 
+      ? totalEarnings / totalProjects 
+      : 0;
+
     return NextResponse.json({
       totalProjects,
       activeContracts,
-      totalEarnings
+      totalEarnings,
+      monthlyEarnings,
+      completedProjects,
+      averageProjectValue
     });
   } catch (error) {
     console.error('Error fetching freelancer stats:', error);

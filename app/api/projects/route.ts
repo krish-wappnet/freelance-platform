@@ -42,55 +42,64 @@ const projectSchema = z.object({
  *       500:
  *         description: Internal server error
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
-    const category = searchParams.get('category');
-    const skill = searchParams.get('skill');
-    
-    const where: any = {};
-    
-    if (status) {
-      where.status = status;
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    if (category) {
-      where.category = category;
-    }
-    
-    if (skill) {
-      where.skills = {
-        has: skill,
-      };
-    }
-    
+
     const projects = await prisma.project.findMany({
-      where,
+      where: {
+        OR: [
+          { clientId: user.id },
+          {
+            bids: {
+              some: {
+                freelancerId: user.id
+              }
+            }
+          }
+        ]
+      },
       include: {
         client: {
           select: {
             id: true,
             name: true,
-            avatar: true,
-          },
+            avatar: true
+          }
         },
-        proposals: {
+        bids: {
+          where: {
+            freelancerId: user.id
+          },
           select: {
             id: true,
-          },
+            amount: true,
+            status: true
+          }
         },
+        contracts: {
+          where: {
+            freelancerId: user.id
+          },
+          select: {
+            id: true,
+            stage: true
+          }
+        }
       },
       orderBy: {
-        createdAt: 'desc',
-      },
+        createdAt: 'desc'
+      }
     });
-    
-    return NextResponse.json({ projects }, { status: 200 });
+
+    return NextResponse.json(projects);
   } catch (error) {
     console.error('Error fetching projects:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to fetch projects' },
       { status: 500 }
     );
   }

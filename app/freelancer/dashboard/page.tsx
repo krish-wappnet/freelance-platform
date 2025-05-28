@@ -9,6 +9,7 @@ import ContractList from '@/components/contracts/contract-list';
 import { Loader2, Briefcase, FileText, DollarSign, TrendingUp, Calendar } from 'lucide-react';
 import { UserRole, ContractStage } from '@prisma/client';
 import { format } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface DashboardStats {
   totalProjects: number;
@@ -90,8 +91,31 @@ export default function FreelancerDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex-1 space-y-8 p-8 pt-6">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-[250px]" />
+          <Skeleton className="h-4 w-[200px]" />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i} className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-[100px]" />
+                <Skeleton className="h-4 w-4" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-[80px] mb-2" />
+                <Skeleton className="h-4 w-[120px]" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-[400px] w-full" />
+        </div>
       </div>
     );
   }
@@ -106,10 +130,10 @@ export default function FreelancerDashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
+            <Briefcase className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.totalProjects || 0}</div>
@@ -118,10 +142,10 @@ export default function FreelancerDashboard() {
             </p>
           </CardContent>
         </Card>
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Contracts</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.activeContracts || 0}</div>
@@ -130,10 +154,10 @@ export default function FreelancerDashboard() {
             </p>
           </CardContent>
         </Card>
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4 text-purple-600 dark:text-purple-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{stats?.totalEarnings?.toLocaleString() || 0}</div>
@@ -142,10 +166,10 @@ export default function FreelancerDashboard() {
             </p>
           </CardContent>
         </Card>
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Monthly Earnings</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <TrendingUp className="h-4 w-4 text-orange-600 dark:text-orange-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{stats?.monthlyEarnings?.toLocaleString() || 0}</div>
