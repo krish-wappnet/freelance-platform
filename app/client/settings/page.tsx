@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/client-auth';
 import { useTheme } from 'next-themes';
+import { AddressInput } from '@/components/ui/address-input';
 import {
   Bell,
   Lock,
@@ -23,6 +24,12 @@ import {
   CreditCard,
   Palette,
   Languages,
+  Building2,
+  Briefcase,
+  MapPin,
+  Upload,
+  Save,
+  Loader2,
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -31,6 +38,19 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [formData, setFormData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: '',
+    website: '',
+    bio: '',
+    address: '',
+    placeId: '',
+    companyName: '',
+    companySize: '',
+    industry: '',
+    companyDescription: '',
+  });
 
   // After mounting, we have access to the theme
   useEffect(() => setMounted(true), []);
@@ -69,95 +89,218 @@ export default function SettingsPage() {
     });
   };
 
+  const handleAddressChange = (address: string, placeId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      address,
+      placeId,
+    }));
+  };
+
   // Prevent hydration mismatch
   if (!mounted) {
     return null;
   }
 
   return (
-    <div className="container max-w-5xl py-4 px-4">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Manage your account settings and preferences.</p>
+    <div className="container max-w-6xl py-6 px-4">
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold tracking-tight">Settings</h1>
+        <p className="text-muted-foreground mt-2">Manage your account settings and preferences.</p>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[400px]">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="preferences">Preferences</TabsTrigger>
+      <Tabs defaultValue="profile" className="space-y-8">
+        <TabsList className="grid w-full grid-cols-4 lg:w-[500px] bg-muted/50 p-1">
+          <TabsTrigger value="profile" className="data-[state=active]:bg-background">Profile</TabsTrigger>
+          <TabsTrigger value="security" className="data-[state=active]:bg-background">Security</TabsTrigger>
+          <TabsTrigger value="notifications" className="data-[state=active]:bg-background">Notifications</TabsTrigger>
+          <TabsTrigger value="preferences" className="data-[state=active]:bg-background">Preferences</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="profile" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
+        <TabsContent value="profile" className="space-y-8">
+          <Card className="border-none shadow-lg">
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-2xl">Profile Information</CardTitle>
               <CardDescription>
                 Update your profile information and how others see you on the platform.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleProfileUpdate} className="space-y-6">
-                <div className="flex items-center gap-6">
-                  <Avatar className="h-20 w-20">
+              <form onSubmit={handleProfileUpdate} className="space-y-8">
+                <div className="flex items-center gap-8 p-4 bg-muted/30 rounded-lg">
+                  <Avatar className="h-24 w-24 border-4 border-background">
                     <AvatarImage src={user?.avatar || undefined} alt={user?.name || 'User'} />
-                    <AvatarFallback className="text-lg">{user?.name?.[0] || 'U'}</AvatarFallback>
+                    <AvatarFallback className="text-2xl">{user?.name?.[0] || 'U'}</AvatarFallback>
                   </Avatar>
-                  <div>
-                    <Button variant="outline" size="sm">Change Avatar</Button>
-                    <p className="text-sm text-muted-foreground mt-1">
+                  <div className="space-y-2">
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Upload className="h-4 w-4" />
+                      Change Avatar
+                    </Button>
+                    <p className="text-sm text-muted-foreground">
                       JPG, GIF or PNG. Max size of 2MB.
                     </p>
                   </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <Input id="name" defaultValue={user?.name || ''} />
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Personal Information</h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Full Name</Label>
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            id="name" 
+                            value={formData.name}
+                            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            id="email" 
+                            type="email" 
+                            value={formData.email}
+                            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            id="phone" 
+                            type="tel" 
+                            placeholder="+1 (555) 000-0000"
+                            value={formData.phone}
+                            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="website">Website</Label>
+                        <div className="flex items-center gap-2">
+                          <Globe className="h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            id="website" 
+                            type="url" 
+                            placeholder="https://example.com"
+                            value={formData.website}
+                            onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <Input id="email" type="email" defaultValue={user?.email || ''} />
-                    </div>
-                  </div>
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Company Information</h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="companyName">Company Name</Label>
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            id="companyName" 
+                            placeholder="Enter your company name"
+                            value={formData.companyName}
+                            onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                          />
+                        </div>
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <Input id="phone" type="tel" placeholder="+1 (555) 000-0000" />
-                    </div>
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="companySize">Company Size</Label>
+                        <div className="flex items-center gap-2">
+                          <Briefcase className="h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            id="companySize" 
+                            placeholder="e.g., 1-10, 11-50, 51-200"
+                            value={formData.companySize}
+                            onChange={(e) => setFormData(prev => ({ ...prev, companySize: e.target.value }))}
+                          />
+                        </div>
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="website">Website</Label>
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-4 w-4 text-muted-foreground" />
-                      <Input id="website" type="url" placeholder="https://example.com" />
+                      <div className="space-y-2">
+                        <Label htmlFor="industry">Industry</Label>
+                        <div className="flex items-center gap-2">
+                          <Briefcase className="h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            id="industry" 
+                            placeholder="e.g., Technology, Healthcare, Finance"
+                            value={formData.industry}
+                            onChange={(e) => setFormData(prev => ({ ...prev, industry: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+
+                      <AddressInput
+                        value={formData.address}
+                        onChange={handleAddressChange}
+                        label="Company Address"
+                        placeholder="Enter your company address"
+                        className="w-full"
+                      />
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="bio">Bio</Label>
-                  <Textarea
-                    id="bio"
-                    placeholder="Tell us about yourself"
-                    className="min-h-[100px]"
-                  />
+                <div className="space-y-6">
+                  <h3 className="text-lg font-medium">About</h3>
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="bio">Bio</Label>
+                        <Textarea
+                          id="bio"
+                          placeholder="Tell us about yourself"
+                          className="min-h-[120px] resize-none"
+                          value={formData.bio}
+                          onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="companyDescription">Company Description</Label>
+                        <Textarea
+                          id="companyDescription"
+                          placeholder="Tell us about your company"
+                          className="min-h-[120px] resize-none"
+                          value={formData.companyDescription}
+                          onChange={(e) => setFormData(prev => ({ ...prev, companyDescription: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? 'Saving...' : 'Save Changes'}
-                </Button>
+                <div className="flex justify-end">
+                  <Button type="submit" disabled={isLoading} size="lg" className="gap-2">
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" />
+                        Save Changes
+                      </>
+                    )}
+                  </Button>
+                </div>
               </form>
             </CardContent>
           </Card>
