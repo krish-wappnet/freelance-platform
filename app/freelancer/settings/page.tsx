@@ -21,7 +21,6 @@ import {
   Phone,
   User,
   Globe,
-  Shield,
   CreditCard,
   Palette,
   Languages,
