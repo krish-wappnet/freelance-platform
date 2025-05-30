@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MapPin } from 'lucide-react';
@@ -37,35 +37,7 @@ export function AddressInput({
   const [state, setState] = useState(initialState || '');
   const [country, setCountry] = useState(initialCountry || '');
 
-  useEffect(() => {
-    if (!window.google) {
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
-      script.async = true;
-      script.defer = true;
-      script.onload = initializeAutocomplete;
-      document.head.appendChild(script);
-    } else {
-      initializeAutocomplete();
-    }
-
-    return () => {
-      if (autocomplete) {
-        window.google.maps.event.clearInstanceListeners(autocomplete);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (initialState) setState(initialState);
-    if (initialCountry) setCountry(initialCountry);
-  }, [initialState, initialCountry]);
-
-  useEffect(() => {
-    if (value) setInputValue(value);
-  }, [value]);
-
-  const initializeAutocomplete = () => {
+  const initializeAutocomplete = useCallback(() => {
     if (inputRef.current && window.google) {
       const autocompleteInstance = new window.google.maps.places.Autocomplete(inputRef.current, {
         types: ['address'],
@@ -104,7 +76,35 @@ export function AddressInput({
 
       setAutocomplete(autocompleteInstance);
     }
-  };
+  }, [onChange]);
+
+  useEffect(() => {
+    if (!window.google) {
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
+      script.async = true;
+      script.defer = true;
+      script.onload = initializeAutocomplete;
+      document.head.appendChild(script);
+    } else {
+      initializeAutocomplete();
+    }
+
+    return () => {
+      if (autocomplete) {
+        window.google.maps.event.clearInstanceListeners(autocomplete);
+      }
+    };
+  }, [initializeAutocomplete, autocomplete]);
+
+  useEffect(() => {
+    if (initialState) setState(initialState);
+    if (initialCountry) setCountry(initialCountry);
+  }, [initialState, initialCountry]);
+
+  useEffect(() => {
+    if (value) setInputValue(value);
+  }, [value]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);

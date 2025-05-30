@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Briefcase, Clock, Calendar, DollarSign, Users, FileText, CheckCircle2, XCircle } from 'lucide-react';
 import { useAuth } from '@/lib/client-auth';
+import Image from 'next/image';
 
 interface Project {
   id: string;
@@ -83,8 +84,10 @@ export default function ProjectDetails() {
       }
     };
 
-    fetchProject();
-  }, [id]);
+    if (parsedId) {
+      fetchProject();
+    }
+  }, [parsedId]);
 
   if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
 
@@ -145,15 +148,13 @@ export default function ProjectDetails() {
               <CardContent>
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
-                    {project.client.avatar ? (
-                      <img
-                        src={project.client.avatar}
-                        alt={project.client.name}
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-gray-600">{project.client.name[0]}</span>
-                    )}
+                    <Image
+                      src={project.client.avatar || '/placeholder-avatar.png'}
+                      alt={project.client.name}
+                      width={40}
+                      height={40}
+                      className="rounded-full"
+                    />
                   </div>
                   <div>
                     <h3 className="font-medium">{project.client.name}</h3>

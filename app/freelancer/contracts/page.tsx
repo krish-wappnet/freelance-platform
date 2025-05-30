@@ -115,8 +115,10 @@ export default function FreelancerContractsPage() {
       }
     };
 
-    fetchContracts();
-  }, [toast]);
+    if (user) {
+      fetchContracts();
+    }
+  }, [user, toast]);
 
   const getStageColor = (stage: ContractStage) => {
     switch (stage) {

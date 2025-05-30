@@ -3,13 +3,6 @@ import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { MilestoneStatus, UserRole, NotificationType } from '@prisma/client';
 
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace Prisma {
-    interface PrismaPromise<T> extends Promise<T> {}
-  }
-}
-
 // Define types for our raw query results
 interface ContractData {
   id: string;

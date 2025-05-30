@@ -310,8 +310,9 @@ model MilestoneProgress {
 model Message {
   id              String    @id @default(uuid())
   content         String
-  isRead          Boolean   @default(false)
+  read            Boolean   @default(false)
   createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   
   // Relations
   senderId        String

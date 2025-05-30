@@ -96,11 +96,11 @@ export async function GET(request: NextRequest) {
     } else {
       // Get all conversations
       // First, get all users this user has exchanged messages with
-      const conversations = await prisma.₹queryRaw`
+      const conversations = await prisma.$queryRaw`
         SELECT 
           DISTINCT
           CASE 
-            WHEN m."senderId" = ₹{user.id} THEN m."receiverId" 
+            WHEN m."senderId" = ${user.id} THEN m."receiverId" 
             ELSE m."senderId" 
           END AS "userId",
           u.name, 
@@ -109,21 +109,21 @@ export async function GET(request: NextRequest) {
           (
             SELECT COUNT(*) 
             FROM "Message" 
-            WHERE "receiverId" = ₹{user.id} 
+            WHERE "receiverId" = ${user.id} 
             AND "senderId" = CASE 
-              WHEN m."senderId" = ₹{user.id} THEN m."receiverId" 
+              WHEN m."senderId" = ${user.id} THEN m."receiverId" 
               ELSE m."senderId" 
             END
             AND "read" = false
           ) as "unreadCount"
         FROM "Message" m
         JOIN "User" u ON u.id = CASE 
-          WHEN m."senderId" = ₹{user.id} THEN m."receiverId" 
+          WHEN m."senderId" = ${user.id} THEN m."receiverId" 
           ELSE m."senderId" 
         END
-        WHERE m."senderId" = ₹{user.id} OR m."receiverId" = ₹{user.id}
+        WHERE m."senderId" = ${user.id} OR m."receiverId" = ${user.id}
         GROUP BY CASE 
-          WHEN m."senderId" = ₹{user.id} THEN m."receiverId" 
+          WHEN m."senderId" = ${user.id} THEN m."receiverId" 
           ELSE m."senderId" 
         END, u.name, u.avatar
         ORDER BY "lastMessageAt" DESC

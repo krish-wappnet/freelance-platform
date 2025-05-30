@@ -33,7 +33,7 @@ export default function BidFormModal({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Submit Bid for "{projectTitle}"</DialogTitle>
+            <DialogTitle>Submit Bid for &quot;{projectTitle}&quot;</DialogTitle>
           </DialogHeader>
           <BidForm
             projectId={projectId}

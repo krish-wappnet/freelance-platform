@@ -29,7 +29,7 @@ export default function ProposalList({ bids }: ProposalListProps) {
         <FileText className="h-10 w-10 text-muted-foreground mb-2" />
         <h3 className="text-lg font-medium">No proposals yet</h3>
         <p className="text-sm text-muted-foreground mt-1">
-          Start submitting proposals to projects you're interested in
+          Start submitting proposals to projects you&apos;re interested in
         </p>
       </div>
     );
@@ -84,7 +84,7 @@ export default function ProposalList({ bids }: ProposalListProps) {
             </TableCell>
             <TableCell className="text-right">
               <Link 
-                href={`/freelancer/bids/₹{bid.id}`}
+                href={`/freelancer/bids/${bid.id}`}
                 className="text-primary hover:underline"
               >
                 View <ExternalLink className="ml-1 h-3 w-3" />

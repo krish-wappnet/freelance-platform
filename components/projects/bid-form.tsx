@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
+import { DialogTitle } from '@/components/ui/dialog';
 
 interface BidFormProps {
   projectId: string;
@@ -62,7 +63,7 @@ export default function BidForm({ projectId, projectTitle, projectBudget, projec
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>Submit Bid for "{projectTitle}"</CardTitle>
+        <CardTitle>Submit Bid for &quot;{projectTitle}&quot;</CardTitle>
         <CardDescription>
           Review the project details and submit your bid
         </CardDescription>

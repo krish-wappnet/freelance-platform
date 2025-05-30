@@ -136,8 +136,8 @@ export default function ClientContractsPage() {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <CreditCard className="h-16 w-16 text-muted-foreground mb-4" />
             <h2 className="text-xl font-semibold mb-2">No Contracts Yet</h2>
-            <p className="text-muted-foreground text-center mb-4">
-              You haven't created any contracts yet.
+            <p className="text-sm text-muted-foreground mt-1">
+              You haven&apos;t created any contracts yet
             </p>
             <Button variant="outline" onClick={() => window.location.href = '/client/projects'}>
               Browse Projects

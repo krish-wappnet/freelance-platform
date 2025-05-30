@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -52,7 +52,7 @@ export default function ClientBids() {
     sortOrder: 'desc',
   });
 
-  const fetchBids = async () => {
+  const fetchBids = useCallback(async () => {
     try {
       const params = new URLSearchParams();
       if (filter.status !== 'all') params.append('status', filter.status);
@@ -71,7 +71,7 @@ export default function ClientBids() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
 
   const updateBidStatus = async (bidId: string, status: string) => {
     try {
@@ -96,7 +96,7 @@ export default function ClientBids() {
 
   useEffect(() => {
     fetchBids();
-  }, [filter]);
+  }, [filter, fetchBids]);
 
   if (loading) {
     return (

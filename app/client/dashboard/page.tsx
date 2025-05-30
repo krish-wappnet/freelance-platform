@@ -134,7 +134,7 @@ export default function ClientDashboard() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Welcome back, {user?.name}</h1>
-          <p className="text-muted-foreground">Here's an overview of your projects and earnings</p>
+          <p className="text-muted-foreground">Here&apos;s an overview of your projects and earnings</p>
         </div>
         <Button onClick={() => setShowCreateProject(true)} className="bg-primary hover:bg-primary/90">
           <Plus className="mr-2 h-4 w-4" />

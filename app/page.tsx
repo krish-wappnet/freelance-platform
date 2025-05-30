@@ -113,7 +113,7 @@ export default function Home() {
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Everything You Need in One Platform</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              From project discovery to final payment, we've designed a seamless experience.
+              From project discovery to final payment, we&apos;ve designed a seamless experience.
             </p>
           </div>
           
