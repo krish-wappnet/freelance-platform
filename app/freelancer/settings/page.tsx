@@ -34,6 +34,7 @@ import {
   Loader2,
   Trash2,
 } from 'lucide-react';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -55,6 +56,7 @@ export default function SettingsPage() {
     collegeName: '',
     degreeName: '',
     avatar: '',
+    profileImage: '',
   });
   const [certificationFiles, setCertificationFiles] = useState<File[]>([]);
   const [addressComponents, setAddressComponents] = useState({
@@ -63,6 +65,7 @@ export default function SettingsPage() {
     country: '',
     placeId: '',
   });
+  const [isUploading, setIsUploading] = useState(false);
 
   // Fetch profile data
   useEffect(() => {
@@ -121,12 +124,13 @@ export default function SettingsPage() {
         hourlyRate: Number(formData.hourlyRate),
       };
 
+      const formDataToSend = new FormData();
+      formDataToSend.append('profileData', JSON.stringify(dataToSend));
+
       const response = await fetch('/api/profile', {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(dataToSend),
+        body: formDataToSend,
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -203,6 +207,13 @@ export default function SettingsPage() {
     setCertificationFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
   };
 
+  const handleImageUpload = async (imageUrl: string) => {
+    setFormData(prev => ({
+      ...prev,
+      profileImage: imageUrl
+    }));
+  };
+
   // Prevent hydration mismatch
   if (!mounted) {
     return null;
@@ -233,17 +244,112 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleProfileUpdate} className="space-y-8">
-                <div className="flex items-center gap-8 p-4 bg-muted/30 rounded-lg">
-                  <Avatar className="h-24 w-24 border-4 border-background">
-                    <AvatarImage src={user?.avatar || undefined} alt={user?.name || 'User'} />
-                    <AvatarFallback className="text-2xl">{user?.name?.[0] || 'U'}</AvatarFallback>
-                  </Avatar>
-                  <div className="space-y-2">
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <Upload className="h-4 w-4" />
-                      Change Avatar
-                    </Button>
-                    <p className="text-sm text-muted-foreground">
+                <div className="flex items-center gap-8 p-6 bg-muted/30 rounded-lg border border-border/50">
+                  <div className="relative group">
+                    <Avatar className="h-32 w-32 border-4 border-background shadow-lg transition-transform duration-200 group-hover:scale-105">
+                      <AvatarImage src={formData.profileImage || undefined} alt={formData.name || 'User'} />
+                      <AvatarFallback className="text-3xl bg-primary/10">{formData.name?.[0] || 'U'}</AvatarFallback>
+                    </Avatar>
+                    {isUploading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-full">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-medium">Profile Picture</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Upload a professional photo to help others recognize you.
+                      </p>
+                    </div>
+                    <input
+                      type="file"
+                      id="avatar-upload"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setIsUploading(true);
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          formData.append('profileData', JSON.stringify({}));
+                          
+                          try {
+                            const response = await fetch('/api/profile', {
+                              method: 'PATCH',
+                              body: formData,
+                              credentials: 'include',
+                            });
+                            
+                            if (response.ok) {
+                              const data = await response.json();
+                              setFormData(prev => ({
+                                ...prev,
+                                profileImage: data.profile.profileImage
+                              }));
+                              toast({
+                                title: "Avatar updated",
+                                description: "Your profile picture has been updated successfully.",
+                              });
+                            } else {
+                              throw new Error('Failed to update avatar');
+                            }
+                          } catch (error) {
+                            toast({
+                              title: "Error",
+                              description: "Failed to update avatar. Please try again.",
+                              variant: "destructive",
+                            });
+                          } finally {
+                            setIsUploading(false);
+                          }
+                        }
+                      }}
+                    />
+                    <div className="flex gap-3">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="gap-2"
+                        type="button"
+                        onClick={() => document.getElementById('avatar-upload')?.click()}
+                        disabled={isUploading}
+                      >
+                        {isUploading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-4 w-4" />
+                            Change Avatar
+                          </>
+                        )}
+                      </Button>
+                      {formData.profileImage && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="gap-2 text-destructive hover:text-destructive/90"
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, profileImage: '' }));
+                            toast({
+                              title: "Avatar removed",
+                              description: "Your profile picture has been removed.",
+                            });
+                          }}
+                          disabled={isUploading}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
                       JPG, GIF or PNG. Max size of 2MB.
                     </p>
                   </div>

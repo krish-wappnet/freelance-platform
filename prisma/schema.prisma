@@ -143,6 +143,9 @@ model User {
   notifications       Notification[]
   milestoneProgress   MilestoneProgress[]
 
+  profileImage String?
+  freelancerProfile FreelancerProfile?
+
   @@map("users")
 }
 
@@ -339,4 +342,11 @@ enum PaymentStatus {
   COMPLETED
   FAILED
   REFUNDED
+}
+
+model FreelancerProfile {
+  id String @id @default(uuid())
+  profileImage String?
+  userId String @unique
+  user User @relation(fields: [userId], references: [id])
 }

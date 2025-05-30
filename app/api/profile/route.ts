@@ -2,6 +2,9 @@ import { getCurrentUser } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { cloudinary } from '@/lib/cloudinary';
 
 const profileUpdateSchema = z.object({
   // Personal Information
@@ -11,6 +14,7 @@ const profileUpdateSchema = z.object({
   address: z.string().nullable().optional(),
   placeId: z.string().nullable().optional(),
   bio: z.string().nullable().optional(),
+  profileImage: z.string().nullable().optional(),
 
   // Company Information
   companyName: z.string().nullable().optional(),
@@ -67,6 +71,7 @@ export async function GET() {
         role: true,
         bio: true,
         avatar: true,
+        profileImage: true,
         location: true,
         skills: true,
         hourlyRate: true,
@@ -101,73 +106,64 @@ export async function GET() {
   }
 }
 
-export async function PATCH(request: NextRequest) {
+export async function PATCH(request: Request) {
   try {
     const user = await getCurrentUser();
-    
     if (!user) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    
-    // Validate request body
-    const result = profileUpdateSchema.safeParse(body);
-    if (!result.success) {
-      return NextResponse.json(
-        { error: result.error.errors },
-        { status: 400 }
-      );
+    const formData = await request.formData();
+    const file = formData.get('file') as File | null;
+    const profileData = formData.get('profileData') as string;
+
+    let imageUrl = null;
+    if (file) {
+      // Convert file to base64
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const base64String = buffer.toString('base64');
+      const dataURI = `data:${file.type};base64,${base64String}`;
+
+      // Upload to Cloudinary
+      const result = await new Promise((resolve, reject) => {
+        cloudinary.uploader.upload(
+          dataURI,
+          {
+            folder: 'profile_images',
+            resource_type: 'auto',
+          },
+          (error, result) => {
+            if (error) reject(error);
+            resolve(result);
+          }
+        );
+      });
+
+      imageUrl = (result as any).secure_url;
     }
 
+    // Parse and validate profile data
+    const parsedData = JSON.parse(profileData);
+    const validatedData = profileUpdateSchema.parse(parsedData);
+
+    // Update profile with image URL if available
     const updatedProfile = await prisma.user.update({
       where: { id: user.id },
-      data: result.data,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        bio: true,
-        avatar: true,
-        location: true,
-        skills: true,
-        hourlyRate: true,
-        phone: true,
-        website: true,
-        address: true,
-        placeId: true,
-        companyName: true,
-        companySize: true,
-        industry: true,
-        companyDescription: true,
-        theme: true,
-        language: true,
-        timezone: true,
-        currency: true,
-        emailNotifications: true,
-        projectUpdates: true,
-        newMessages: true,
-        paymentUpdates: true,
-        twoFactorEnabled: true,
-        loginNotifications: true,
+      data: {
+        ...validatedData,
+        profileImage: imageUrl || validatedData.profileImage,
       },
     });
 
-    return NextResponse.json(
-      { 
-        message: 'Profile updated successfully',
-        profile: updatedProfile 
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({ profile: updatedProfile });
   } catch (error) {
     console.error('Error updating profile:', error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 });
+    }
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Error updating profile' },
       { status: 500 }
     );
   }
