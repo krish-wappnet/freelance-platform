@@ -33,12 +33,15 @@ import {
   Save,
   Loader2,
   Trash2,
+  Star,
+  StarHalf,
 } from 'lucide-react';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { cn } from '@/lib/utils';
 
 export default function SettingsPage() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { theme, setTheme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -66,6 +69,11 @@ export default function SettingsPage() {
     placeId: '',
   });
   const [isUploading, setIsUploading] = useState(false);
+  const [ratings, setRatings] = useState<any[]>([]);
+  const [averageRating, setAverageRating] = useState(0);
+  const [totalRatings, setTotalRatings] = useState(0);
+  const [isLoadingRatings, setIsLoadingRatings] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
 
   // Fetch profile data
   useEffect(() => {
@@ -75,6 +83,7 @@ export default function SettingsPage() {
         if (response.ok) {
           const data = await response.json();
           if (data.profile) {
+            setProfile(data.profile);
             setFormData(prev => ({
               ...prev,
               ...data.profile,
@@ -106,10 +115,58 @@ export default function SettingsPage() {
       }
     };
 
-    if (user) {
+    if (!authLoading) {
       fetchProfile();
     }
-  }, [user, toast]);
+  }, [authLoading, toast]);
+
+  // Fetch ratings data
+  useEffect(() => {
+    const fetchRatings = async () => {
+      if (!profile?.id) {
+        console.log('No profile ID available');
+        return;
+      }
+
+      setIsLoadingRatings(true);
+      console.log('Fetching ratings for profile:', profile.id);
+      try {
+        const response = await fetch(`/api/ratings?freelancerId=${profile.id}`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        console.log('Ratings API Response:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Ratings API Error:', errorText);
+          throw new Error(errorText || 'Failed to fetch ratings');
+        }
+        
+        const data = await response.json();
+        console.log('Ratings Data:', data);
+        
+        setRatings(data.ratings || []);
+        setAverageRating(data.averageRating || 0);
+        setTotalRatings(data.totalRatings || 0);
+      } catch (error) {
+        console.error('Error fetching ratings:', error);
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to load ratings. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingRatings(false);
+      }
+    };
+
+    fetchRatings();
+  }, [profile, toast]);
 
   // After mounting, we have access to the theme
   useEffect(() => setMounted(true), []);
@@ -227,8 +284,9 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-8">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[500px] bg-muted/50 p-1">
+        <TabsList className="grid w-full grid-cols-5 lg:w-[600px] bg-muted/50 p-1">
           <TabsTrigger value="profile" className="data-[state=active]:bg-background">Profile</TabsTrigger>
+          <TabsTrigger value="ratings" className="data-[state=active]:bg-background">Ratings</TabsTrigger>
           <TabsTrigger value="security" className="data-[state=active]:bg-background">Security</TabsTrigger>
           <TabsTrigger value="notifications" className="data-[state=active]:bg-background">Notifications</TabsTrigger>
           <TabsTrigger value="preferences" className="data-[state=active]:bg-background">Preferences</TabsTrigger>
@@ -568,6 +626,132 @@ export default function SettingsPage() {
                 </Button>
                 </div>
               </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="ratings" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Ratings & Reviews</CardTitle>
+              <CardDescription>
+                See what clients are saying about your work.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {authLoading || isLoadingRatings ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span className="ml-2">Loading ratings...</span>
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {/* Rating Summary */}
+                  <div className="flex items-center gap-8 p-6 bg-muted/30 rounded-lg border border-border/50">
+                    <div className="text-center">
+                      <div className="text-4xl font-bold">{averageRating.toFixed(1)}</div>
+                      <div className="flex items-center justify-center gap-1 mt-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={cn(
+                              "h-5 w-5",
+                              star <= Math.round(averageRating)
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "fill-muted text-muted"
+                            )}
+                          />
+                        ))}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {totalRatings} {totalRatings === 1 ? 'rating' : 'ratings'}
+                      </p>
+                    </div>
+                    <div className="flex-1">
+                      <div className="space-y-2">
+                        {[5, 4, 3, 2, 1].map((rating) => {
+                          const count = ratings.filter(r => Math.round(r.rating) === rating).length;
+                          const percentage = totalRatings ? (count / totalRatings) * 100 : 0;
+                          return (
+                            <div key={rating} className="flex items-center gap-2">
+                              <div className="w-12 text-sm text-muted-foreground">
+                                {rating} {rating === 1 ? 'star' : 'stars'}
+                              </div>
+                              <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-yellow-400"
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                              <div className="w-12 text-sm text-muted-foreground text-right">
+                                {count}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Reviews List */}
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-medium">Recent Reviews</h3>
+                    {ratings.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No reviews yet. Keep delivering great work!
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {ratings.map((rating) => (
+                          <div
+                            key={rating.id}
+                            className="p-4 rounded-lg border border-border/50 bg-card"
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage
+                                    src={rating.ratingUser.profileImage || undefined}
+                                    alt={rating.ratingUser.name}
+                                  />
+                                  <AvatarFallback>
+                                    {rating.ratingUser.name?.[0] || 'U'}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <div className="font-medium">{rating.ratingUser.name}</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {rating.contract.title}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={cn(
+                                      "h-4 w-4",
+                                      star <= rating.rating
+                                        ? "fill-yellow-400 text-yellow-400"
+                                        : "fill-muted text-muted"
+                                    )}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            <p className="mt-3 text-sm text-muted-foreground">
+                              {rating.review}
+                            </p>
+                            <div className="mt-2 text-xs text-muted-foreground">
+                              {new Date(rating.createdAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
