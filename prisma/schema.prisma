@@ -146,6 +146,11 @@ model User {
   profileImage String?
   freelancerProfile FreelancerProfile?
 
+  // Keep these relations
+  averageRating Float     @default(0)
+  ratings       Rating[]  @relation("RatedUser")
+  givenRatings  Rating[]  @relation("RatingUser")
+
   @@map("users")
 }
 
@@ -227,6 +232,7 @@ model Contract {
   bid             Bid?          @relation(fields: [bidId], references: [id])
   milestones      Milestone[]
   payments        Payment[]
+  ratings         Rating[]
   
   @@map("contracts")
 }
@@ -251,7 +257,7 @@ model Milestone {
   payments        Payment[]
   freelancerId    String
   freelancer      User             @relation("FreelancerMilestones", fields: [freelancerId], references: [id])
-  
+
   @@map("milestones")
 }
 
@@ -349,4 +355,22 @@ model FreelancerProfile {
   profileImage String?
   userId String @unique
   user User @relation(fields: [userId], references: [id])
+}
+
+model Rating {
+  id          String   @id @default(cuid())
+  rating      Int      // 1-5 stars
+  review      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  contractId  String
+  contract    Contract @relation(fields: [contractId], references: [id])
+  ratedUserId String   // User being rated
+  ratedUser   User     @relation("RatedUser", fields: [ratedUserId], references: [id])
+  ratingUserId String  // User giving the rating
+  ratingUser   User    @relation("RatingUser", fields: [ratingUserId], references: [id])
+
+  @@index([contractId])
+  @@index([ratedUserId])
+  @@index([ratingUserId])
 }

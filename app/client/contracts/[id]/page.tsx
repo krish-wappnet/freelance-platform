@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { DollarSign, Clock, Calendar, Check, X, Users, Briefcase, FileText, CreditCard, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { RatingDialog } from "@/components/ui/rating-dialog";
 
 interface Contract {
   id: string;
@@ -118,6 +119,66 @@ export default function ContractDetailsPage() {
 
     fetchContract();
   }, [params.id, toast]);
+
+  const handleStageChange = async (newStage: string) => {
+    if (!contract) return;
+    
+    try {
+      const response = await fetch(`/api/contracts/${contract.id}/stage`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ stage: newStage }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update contract stage');
+      }
+
+      const updatedContract = await response.json();
+      setContract(updatedContract);
+      toast({
+        title: 'Success',
+        description: `Contract moved to ${newStage} stage`,
+      });
+    } catch (error) {
+      console.error('Error updating contract stage:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update contract stage',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleTermsAccept = async () => {
+    if (!contract) return;
+    
+    try {
+      const response = await fetch(`/api/contracts/${contract.id}/accept`, {
+        method: 'PUT',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to accept terms');
+      }
+
+      const updatedContract = await response.json();
+      setContract(updatedContract);
+      toast({
+        title: 'Success',
+        description: 'Terms accepted successfully',
+      });
+    } catch (error) {
+      console.error('Error accepting terms:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to accept terms',
+        variant: 'destructive',
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -293,57 +354,41 @@ export default function ContractDetailsPage() {
               {contract.stage === 'PROPOSAL' && !contract.termsAccepted && (
                 <Button
                   variant="default"
-                  onClick={() => {
-                    // TODO: Implement terms acceptance
-                    toast({
-                      title: 'Success',
-                      description: 'Terms accepted successfully',
-                    });
-                  }}
+                  onClick={handleTermsAccept}
                 >
                   Accept Terms
+                </Button>
+              )}
+              {contract.stage === 'PROPOSAL' && contract.termsAccepted && (
+                <Button
+                  variant="default"
+                  onClick={() => handleStageChange('APPROVAL')}
+                >
+                  Move to Approval
                 </Button>
               )}
               {contract.stage === 'APPROVAL' && (
                 <Button
                   variant="default"
-                  onClick={() => {
-                    // TODO: Implement approval
-                    toast({
-                      title: 'Success',
-                      description: 'Contract approved successfully',
-                    });
-                  }}
+                  onClick={() => handleStageChange('PAYMENT')}
                 >
-                  Approve Contract
+                  Move to Payment
                 </Button>
               )}
               {contract.stage === 'PAYMENT' && (
                 <Button
                   variant="default"
-                  onClick={() => {
-                    // TODO: Implement payment
-                    toast({
-                      title: 'Success',
-                      description: 'Payment processed successfully',
-                    });
-                  }}
+                  onClick={() => handleStageChange('REVIEW')}
                 >
-                  Make Payment
+                  Move to Review
                 </Button>
               )}
               {contract.stage === 'REVIEW' && (
                 <Button
                   variant="default"
-                  onClick={() => {
-                    // TODO: Implement review
-                    toast({
-                      title: 'Success',
-                      description: 'Contract reviewed successfully',
-                    });
-                  }}
+                  onClick={() => handleStageChange('COMPLETED')}
                 >
-                  Complete Review
+                  Mark as Completed
                 </Button>
               )}
             </div>
@@ -356,6 +401,19 @@ export default function ContractDetailsPage() {
           </div>
         </CardFooter>
       </Card>
+
+      {contract.stage === "COMPLETED" && (
+        <div className="mt-4">
+          <RatingDialog
+            contractId={contract.id}
+            freelancerId={contract.freelancerId}
+            clientId={contract.clientId}
+            onSuccess={() => {
+              router.refresh();
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

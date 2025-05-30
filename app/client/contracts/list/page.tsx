@@ -19,6 +19,8 @@ import {
   DialogFooter
 } from "@/components/ui/dialog"
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { RatingDialog } from '@/components/ui/rating-dialog';
+import { useRouter } from 'next/navigation';
 
 interface Contract {
   id: string;
@@ -72,8 +74,10 @@ interface Contract {
 export default function ClientContractsPage() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchContracts = async () => {
@@ -193,125 +197,152 @@ export default function ClientContractsPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="sm">View Details</Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle className="text-2xl font-bold">{contract.title}</DialogTitle>
-                            <DialogDescription className="text-muted-foreground">
-                              Contract Details
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="grid gap-6">
-                            <div className="grid grid-cols-2 gap-4">
+                      <div className="flex items-center justify-end gap-2">
+                        {contract.stage === 'COMPLETED' && (
+                          <RatingDialog
+                            contractId={contract.id}
+                            freelancerId={contract.freelancerId}
+                            clientId={contract.clientId}
+                            onSuccess={() => router.refresh()}
+                          />
+                        )}
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-8">
+                              <span className="sr-only">View Details</span>
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="h-4 w-4"
+                              >
+                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                                <circle cx="12" cy="12" r="3" />
+                              </svg>
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle className="text-2xl font-bold">{contract.title}</DialogTitle>
+                              <DialogDescription className="text-muted-foreground">
+                                Contract Details
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-6">
+                              <div className="grid grid-cols-2 gap-4">
+                                <Card>
+                                  <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium">Financial Details</CardTitle>
+                                  </CardHeader>
+                                  <CardContent>
+                                    <div className="flex items-center gap-2">
+                                      <DollarSign className="h-5 w-5 text-muted-foreground" />
+                                      <span className="text-2xl font-semibold">₹{contract.amount.toLocaleString()}</span>
+                                    </div>
+                                    <div className="mt-2 text-sm text-muted-foreground">
+                                      Delivery Time: {contract.bid?.deliveryTime} days
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                                <Card>
+                                  <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium">Timeline</CardTitle>
+                                  </CardHeader>
+                                  <CardContent>
+                                    <div className="flex flex-col gap-2">
+                                      <div className="flex items-center gap-2">
+                                        <Clock className="h-4 w-4 text-muted-foreground" />
+                                        <span className="text-sm">
+                                          {contract.startDate ? new Date(contract.startDate).toLocaleDateString() : 'Start date not set'}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                                        <span className="text-sm">
+                                          {contract.endDate ? new Date(contract.endDate).toLocaleDateString() : 'End date not set'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              </div>
+                              
                               <Card>
                                 <CardHeader className="pb-2">
-                                  <CardTitle className="text-sm font-medium">Financial Details</CardTitle>
+                                  <CardTitle className="text-sm font-medium">Freelancer Information</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                   <div className="flex items-center gap-2">
-                                    <DollarSign className="h-5 w-5 text-muted-foreground" />
-                                    <span className="text-2xl font-semibold">₹{contract.amount.toLocaleString()}</span>
-                                  </div>
-                                  <div className="mt-2 text-sm text-muted-foreground">
-                                    Delivery Time: {contract.bid?.deliveryTime} days
+                                    <User className="h-4 w-4 text-muted-foreground" />
+                                    <span className="font-medium">{contract.bid?.freelancer?.name || 'N/A'}</span>
                                   </div>
                                 </CardContent>
                               </Card>
+
                               <Card>
                                 <CardHeader className="pb-2">
-                                  <CardTitle className="text-sm font-medium">Timeline</CardTitle>
+                                  <CardTitle className="text-sm font-medium">Project Description</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                  <div className="flex flex-col gap-2">
-                                    <div className="flex items-center gap-2">
-                                      <Clock className="h-4 w-4 text-muted-foreground" />
-                                      <span className="text-sm">
-                                        {contract.startDate ? new Date(contract.startDate).toLocaleDateString() : 'Start date not set'}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                                      <span className="text-sm">
-                                        {contract.endDate ? new Date(contract.endDate).toLocaleDateString() : 'End date not set'}
-                                      </span>
-                                    </div>
+                                  <p className="text-muted-foreground">{contract.description}</p>
+                                </CardContent>
+                              </Card>
+
+                              <Card>
+                                <CardHeader className="pb-2">
+                                  <CardTitle className="text-sm font-medium">Cover Letter</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <p className="text-muted-foreground">{contract.bid?.coverLetter || 'N/A'}</p>
+                                </CardContent>
+                              </Card>
+
+                              <Card>
+                                <CardHeader className="pb-2">
+                                  <CardTitle className="text-sm font-medium">Milestones</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="space-y-3">
+                                    {contract.milestones.length > 0 ? (
+                                      contract.milestones.map((milestone) => (
+                                        <Card key={milestone.id} className="bg-muted/50">
+                                          <CardHeader className="pb-2">
+                                            <CardTitle className="text-sm font-medium">{milestone.title}</CardTitle>
+                                          </CardHeader>
+                                          <CardContent>
+                                            <div className="flex items-center justify-between">
+                                              <div>
+                                                <p className="text-sm">Amount: ₹{milestone.amount.toLocaleString()}</p>
+                                                <p className="text-sm text-muted-foreground">Status: {milestone.status}</p>
+                                              </div>
+                                              {milestone.status === "PAYMENT_REQUESTED" && (
+                                                <Button 
+                                                  size="sm"
+                                                  onClick={() => window.location.href = `/payment?milestoneId=${milestone.id}&amount=${milestone.amount}`}
+                                                >
+                                                  Make Payment
+                                                </Button>
+                                              )}
+                                            </div>
+                                          </CardContent>
+                                        </Card>
+                                      ))
+                                    ) : (
+                                      <p className="text-muted-foreground">No milestones for this contract.</p>
+                                    )}
                                   </div>
                                 </CardContent>
                               </Card>
                             </div>
-                            
-                            <Card>
-                              <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium">Freelancer Information</CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                <div className="flex items-center gap-2">
-                                  <User className="h-4 w-4 text-muted-foreground" />
-                                  <span className="font-medium">{contract.bid?.freelancer?.name || 'N/A'}</span>
-                                </div>
-                              </CardContent>
-                            </Card>
-
-                            <Card>
-                              <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium">Project Description</CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                <p className="text-muted-foreground">{contract.description}</p>
-                              </CardContent>
-                            </Card>
-
-                            <Card>
-                              <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium">Cover Letter</CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                <p className="text-muted-foreground">{contract.bid?.coverLetter || 'N/A'}</p>
-                              </CardContent>
-                            </Card>
-
-                            <Card>
-                              <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium">Milestones</CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                <div className="space-y-3">
-                                  {contract.milestones.length > 0 ? (
-                                    contract.milestones.map((milestone) => (
-                                      <Card key={milestone.id} className="bg-muted/50">
-                                        <CardHeader className="pb-2">
-                                          <CardTitle className="text-sm font-medium">{milestone.title}</CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                          <div className="flex items-center justify-between">
-                                            <div>
-                                              <p className="text-sm">Amount: ₹{milestone.amount.toLocaleString()}</p>
-                                              <p className="text-sm text-muted-foreground">Status: {milestone.status}</p>
-                                            </div>
-                                            {milestone.status === "PAYMENT_REQUESTED" && (
-                                              <Button 
-                                                size="sm"
-                                                onClick={() => window.location.href = `/payment?milestoneId=${milestone.id}&amount=${milestone.amount}`}
-                                              >
-                                                Make Payment
-                                              </Button>
-                                            )}
-                                          </div>
-                                        </CardContent>
-                                      </Card>
-                                    ))
-                                  ) : (
-                                    <p className="text-muted-foreground">No milestones for this contract.</p>
-                                  )}
-                                </div>
-                              </CardContent>
-                            </Card>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
