@@ -34,6 +34,10 @@ import {
   Trash2,
   Star,
   StarHalf,
+  TrendingUp,
+  ThumbsUp,
+  Clock,
+  MessageSquare,
 } from 'lucide-react';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { cn } from '@/lib/utils';
@@ -645,56 +649,124 @@ export default function SettingsPage() {
                 </div>
               ) : (
                 <div className="space-y-8">
-                  {/* Rating Summary */}
-                  <div className="flex items-center gap-8 p-6 bg-muted/30 rounded-lg border border-border/50">
-                    <div className="text-center">
-                      <div className="text-4xl font-bold">{averageRating.toFixed(1)}</div>
-                      <div className="flex items-center justify-center gap-1 mt-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star
-                            key={star}
-                            className={cn(
-                              "h-5 w-5",
-                              star <= Math.round(averageRating)
-                                ? "fill-yellow-400 text-yellow-400"
-                                : "fill-muted text-muted"
-                            )}
-                          />
-                        ))}
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {totalRatings} {totalRatings === 1 ? 'rating' : 'ratings'}
-                      </p>
-                    </div>
-                    <div className="flex-1">
-                      <div className="space-y-2">
+                  {/* Rating Statistics Cards */}
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <Card className="bg-muted/30">
+                      <CardContent className="p-6">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 bg-primary/10 rounded-full">
+                            <TrendingUp className="h-6 w-6 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Average Rating</p>
+                            <div className="flex items-center gap-1">
+                              <span className="text-2xl font-bold">{averageRating.toFixed(1)}</span>
+                              <span className="text-sm text-muted-foreground">/ 5.0</span>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-muted/30">
+                      <CardContent className="p-6">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 bg-primary/10 rounded-full">
+                            <Award className="h-6 w-6 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Total Reviews</p>
+                            <div className="flex items-center gap-1">
+                              <span className="text-2xl font-bold">{totalRatings}</span>
+                              <span className="text-sm text-muted-foreground">reviews</span>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-muted/30">
+                      <CardContent className="p-6">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 bg-primary/10 rounded-full">
+                            <ThumbsUp className="h-6 w-6 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Positive Reviews</p>
+                            <div className="flex items-center gap-1">
+                              <span className="text-2xl font-bold">
+                                {ratings.filter(r => r.rating >= 4).length}
+                              </span>
+                              <span className="text-sm text-muted-foreground">reviews</span>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-muted/30">
+                      <CardContent className="p-6">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 bg-primary/10 rounded-full">
+                            <Clock className="h-6 w-6 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Latest Review</p>
+                            <div className="flex items-center gap-1">
+                              <span className="text-sm text-muted-foreground">
+                                {ratings.length > 0 
+                                  ? new Date(ratings[0].createdAt).toLocaleDateString()
+                                  : 'No reviews yet'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Rating Distribution */}
+                  <Card className="bg-muted/30">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Rating Distribution</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
                         {[5, 4, 3, 2, 1].map((rating) => {
                           const count = ratings.filter(r => Math.round(r.rating) === rating).length;
                           const percentage = totalRatings ? (count / totalRatings) * 100 : 0;
                           return (
-                            <div key={rating} className="flex items-center gap-2">
-                              <div className="w-12 text-sm text-muted-foreground">
-                                {rating} {rating === 1 ? 'star' : 'stars'}
+                            <div key={rating} className="flex items-center gap-4">
+                              <div className="flex items-center gap-1 w-24">
+                                <span className="text-sm font-medium">{rating}</span>
+                                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                               </div>
                               <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                                 <div
-                                  className="h-full bg-yellow-400"
+                                  className="h-full bg-yellow-400 transition-all duration-500"
                                   style={{ width: `${percentage}%` }}
                                 />
                               </div>
-                              <div className="w-12 text-sm text-muted-foreground text-right">
-                                {count}
+                              <div className="w-16 text-right">
+                                <span className="text-sm text-muted-foreground">
+                                  {count} ({percentage.toFixed(0)}%)
+                                </span>
                               </div>
                             </div>
                           );
                         })}
                       </div>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
 
                   {/* Reviews List */}
                   <div className="space-y-6">
-                    <h3 className="text-lg font-medium">Recent Reviews</h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-medium">Recent Reviews</h3>
+                      <span className="text-sm text-muted-foreground">
+                        Showing {ratings.length} {ratings.length === 1 ? 'review' : 'reviews'}
+                      </span>
+                    </div>
                     {ratings.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">
                         No reviews yet. Keep delivering great work!
@@ -702,49 +774,60 @@ export default function SettingsPage() {
                     ) : (
                       <div className="space-y-4">
                         {ratings.map((rating) => (
-                          <div
-                            key={rating.id}
-                            className="p-4 rounded-lg border border-border/50 bg-card"
-                          >
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex items-center gap-3">
-                                <Avatar className="h-10 w-10">
-                                  <AvatarImage
-                                    src={rating.ratingUser.profileImage || undefined}
-                                    alt={rating.ratingUser.name}
-                                  />
-                                  <AvatarFallback>
-                                    {rating.ratingUser.name?.[0] || 'U'}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <div className="font-medium">{rating.ratingUser.name}</div>
-                                  <div className="text-sm text-muted-foreground">
-                                    {rating.contract.title}
+                          <Card key={rating.id} className="border-border/50">
+                            <CardContent className="p-6">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="h-10 w-10">
+                                    <AvatarImage
+                                      src={rating.ratingUser.profileImage || undefined}
+                                      alt={rating.ratingUser.name}
+                                    />
+                                    <AvatarFallback>
+                                      {rating.ratingUser.name?.[0] || 'U'}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <div className="font-medium">{rating.ratingUser.name}</div>
+                                    <div className="text-sm text-muted-foreground">
+                                      {rating.contract.title}
+                                    </div>
                                   </div>
                                 </div>
+                                <div className="flex items-center gap-1">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <Star
+                                      key={star}
+                                      className={cn(
+                                        "h-4 w-4",
+                                        star <= rating.rating
+                                          ? "fill-yellow-400 text-yellow-400"
+                                          : "fill-muted text-muted"
+                                      )}
+                                    />
+                                  ))}
+                                </div>
                               </div>
-                              <div className="flex items-center gap-1">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                  <Star
-                                    key={star}
-                                    className={cn(
-                                      "h-4 w-4",
-                                      star <= rating.rating
-                                        ? "fill-yellow-400 text-yellow-400"
-                                        : "fill-muted text-muted"
-                                    )}
-                                  />
-                                ))}
+                              <p className="mt-4 text-sm text-muted-foreground">
+                                {rating.review}
+                              </p>
+                              <div className="mt-4 flex items-center justify-between">
+                                <div className="text-xs text-muted-foreground">
+                                  {new Date(rating.createdAt).toLocaleDateString()}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button variant="ghost" size="sm" className="h-8">
+                                    <ThumbsUp className="h-4 w-4 mr-2" />
+                                    Helpful
+                                  </Button>
+                                  <Button variant="ghost" size="sm" className="h-8">
+                                    <MessageSquare className="h-4 w-4 mr-2" />
+                                    Reply
+                                  </Button>
+                                </div>
                               </div>
-                            </div>
-                            <p className="mt-3 text-sm text-muted-foreground">
-                              {rating.review}
-                            </p>
-                            <div className="mt-2 text-xs text-muted-foreground">
-                              {new Date(rating.createdAt).toLocaleDateString()}
-                            </div>
-                          </div>
+                            </CardContent>
+                          </Card>
                         ))}
                       </div>
                     )}
