@@ -30,6 +30,10 @@ import {
   Upload,
   Save,
   Loader2,
+  GraduationCap,
+  Award,
+  FileText,
+  Calendar,
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -39,8 +43,8 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
+    name: '',
+    email: '',
     phone: '',
     website: '',
     bio: '',
@@ -50,7 +54,70 @@ export default function SettingsPage() {
     companySize: '',
     industry: '',
     companyDescription: '',
+    theme: 'light',
+    language: 'en',
+    timezone: '',
+    currency: 'USD',
+    emailNotifications: true,
+    projectUpdates: true,
+    newMessages: true,
+    paymentUpdates: true,
+    twoFactorEnabled: false,
+    loginNotifications: true,
+    avatar: '',
   });
+
+  // Add state for address components
+  const [addressComponents, setAddressComponents] = useState({
+    address: '',
+    state: '',
+    country: '',
+    placeId: '',
+  });
+
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch('/api/profile');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.profile) {
+            setFormData(prev => ({
+              ...prev,
+              ...data.profile,
+            }));
+
+            // Parse address components
+            if (data.profile.address) {
+              const addressParts = data.profile.address.split(',');
+              const state = addressParts[addressParts.length - 2]?.trim() || '';
+              const country = addressParts[addressParts.length - 1]?.trim() || '';
+              const address = addressParts.slice(0, -2).join(',').trim();
+
+              setAddressComponents({
+                address,
+                state,
+                country,
+                placeId: data.profile.placeId || '',
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load profile data.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    if (user) {
+      fetchProfile();
+    }
+  }, [user, toast]);
 
   // After mounting, we have access to the theme
   useEffect(() => setMounted(true), []);
@@ -58,14 +125,34 @@ export default function SettingsPage() {
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Add profile update logic here
-    setTimeout(() => {
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
       });
+
+      if (response.ok) {
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been updated successfully.",
+        });
+      } else {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update profile",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
@@ -83,18 +170,29 @@ export default function SettingsPage() {
 
   const handleThemeChange = (checked: boolean) => {
     setTheme(checked ? 'dark' : 'light');
+    setFormData(prev => ({
+      ...prev,
+      theme: checked ? 'dark' : 'light',
+    }));
     toast({
       title: "Theme updated",
       description: `Switched to ${checked ? 'dark' : 'light'} mode.`,
     });
   };
 
-  const handleAddressChange = (address: string, placeId: string) => {
+  const handleAddressChange = (address: string, placeId: string, state: string, country: string) => {
+    const fullAddress = `${address}, ${state}, ${country}`;
     setFormData(prev => ({
       ...prev,
-      address,
+      address: fullAddress,
       placeId,
     }));
+    setAddressComponents({
+      address,
+      state,
+      country,
+      placeId,
+    });
   };
 
   // Prevent hydration mismatch
@@ -129,8 +227,8 @@ export default function SettingsPage() {
               <form onSubmit={handleProfileUpdate} className="space-y-8">
                 <div className="flex items-center gap-8 p-4 bg-muted/30 rounded-lg">
                   <Avatar className="h-24 w-24 border-4 border-background">
-                    <AvatarImage src={user?.avatar || undefined} alt={user?.name || 'User'} />
-                    <AvatarFallback className="text-2xl">{user?.name?.[0] || 'U'}</AvatarFallback>
+                    <AvatarImage src={formData.avatar || undefined} alt={formData.name || 'User'} />
+                    <AvatarFallback className="text-2xl">{formData.name?.[0] || 'U'}</AvatarFallback>
                   </Avatar>
                   <div className="space-y-2">
                     <Button variant="outline" size="sm" className="gap-2">
@@ -167,7 +265,7 @@ export default function SettingsPage() {
                             id="email" 
                             type="email" 
                             value={formData.email}
-                            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                            disabled
                           />
                         </div>
                       </div>
@@ -245,8 +343,10 @@ export default function SettingsPage() {
                       </div>
 
                       <AddressInput
-                        value={formData.address}
-                        onChange={handleAddressChange}
+                        value={addressComponents.address}
+                        state={addressComponents.state}
+                        country={addressComponents.country}
+                        onChange={(address, placeId, state, country) => handleAddressChange(address, placeId, state, country)}
                         label="Company Address"
                         placeholder="Enter your company address"
                         className="w-full"

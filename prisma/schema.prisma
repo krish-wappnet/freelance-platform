@@ -88,6 +88,44 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Personal Information
+  phone         String?
+  website       String?
+  address       String?
+  placeId       String?
+
+  // Company Information (for clients)
+  companyName   String?
+  companySize   String?
+  industry      String?
+  companyDescription String?
+
+  // Professional Information (for freelancers)
+  experience    String?
+  education     String?
+  certifications String[]
+  portfolio     String?
+  availability  String?
+  languages     String[]
+  preferredPaymentMethod String?
+  taxInformation String?
+
+  // Preferences
+  theme         String?   @default("light")
+  language      String?   @default("en")
+  timezone      String?
+  currency      String?   @default("USD")
+
+  // Notification Settings
+  emailNotifications Boolean @default(true)
+  projectUpdates    Boolean @default(true)
+  newMessages      Boolean @default(true)
+  paymentUpdates   Boolean @default(true)
+
+  // Security Settings
+  twoFactorEnabled Boolean @default(false)
+  loginNotifications Boolean @default(true)
+
   // Client relations
   postedProjects      Project[]       @relation("ClientToProject")
   paymentsAsClient    Payment[]       @relation("ClientPayments")

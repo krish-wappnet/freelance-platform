@@ -42,20 +42,71 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
+    name: '',
+    email: '',
     phone: '',
     website: '',
     bio: '',
     address: '',
     placeId: '',
-    skills: '',
-    hourlyRate: '',
+    skills: [] as string[],
+    hourlyRate: 0,
     experience: '',
     collegeName: '',
     degreeName: '',
+    avatar: '',
   });
   const [certificationFiles, setCertificationFiles] = useState<File[]>([]);
+  const [addressComponents, setAddressComponents] = useState({
+    address: '',
+    state: '',
+    country: '',
+    placeId: '',
+  });
+
+  // Fetch profile data
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch('/api/profile');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.profile) {
+            setFormData(prev => ({
+              ...prev,
+              ...data.profile,
+            }));
+
+            // Parse address components
+            if (data.profile.address) {
+              const addressParts = data.profile.address.split(',');
+              const state = addressParts[addressParts.length - 2]?.trim() || '';
+              const country = addressParts[addressParts.length - 1]?.trim() || '';
+              const address = addressParts.slice(0, -2).join(',').trim();
+
+              setAddressComponents({
+                address,
+                state,
+                country,
+                placeId: data.profile.placeId || '',
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load profile data.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    if (user) {
+      fetchProfile();
+    }
+  }, [user, toast]);
 
   // After mounting, we have access to the theme
   useEffect(() => setMounted(true), []);
@@ -63,14 +114,40 @@ export default function SettingsPage() {
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    console.log('Saving Profile:', formData, 'Certifications:', certificationFiles);
-    setTimeout(() => {
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
+    try {
+      const dataToSend = {
+        ...formData,
+        skills: formData.skills,
+        hourlyRate: Number(formData.hourlyRate),
+      };
+
+      const response = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSend),
       });
+
+      if (response.ok) {
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been updated successfully.",
+        });
+      } else {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update profile",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
@@ -94,11 +171,18 @@ export default function SettingsPage() {
   };
 
   const handleAddressChange = (address: string, placeId: string, state: string, country: string) => {
+    const fullAddress = `${address}, ${state}, ${country}`;
     setFormData(prev => ({
       ...prev,
-      address,
+      address: fullAddress,
       placeId,
     }));
+    setAddressComponents({
+      address,
+      state,
+      country,
+      placeId,
+    });
   };
 
   const handleCollegeNameChange = (name: string) => {
@@ -234,9 +318,14 @@ export default function SettingsPage() {
                           <Input
                             id="hourlyRate"
                             type="number"
+                            min="0"
+                            step="0.01"
                             placeholder="Enter your hourly rate"
                             value={formData.hourlyRate}
-                            onChange={(e) => setFormData(prev => ({ ...prev, hourlyRate: e.target.value }))}
+                            onChange={(e) => setFormData(prev => ({ 
+                              ...prev, 
+                              hourlyRate: Number(e.target.value) 
+                            }))}
                           />
                         </div>
                       </div>
@@ -248,14 +337,19 @@ export default function SettingsPage() {
                           <Input
                             id="skills"
                             placeholder="e.g., React, Node.js, UI/UX"
-                            value={formData.skills}
-                            onChange={(e) => setFormData(prev => ({ ...prev, skills: e.target.value }))}
+                            value={formData.skills.join(', ')}
+                            onChange={(e) => setFormData(prev => ({ 
+                              ...prev, 
+                              skills: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                            }))}
                           />
                         </div>
                       </div>
 
                       <AddressInput
-                        value={formData.address}
+                        value={addressComponents.address}
+                        state={addressComponents.state}
+                        country={addressComponents.country}
                         onChange={(address, placeId, state, country) => handleAddressChange(address, placeId, state, country)}
                         label="Address"
                         placeholder="Enter your address"

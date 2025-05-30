@@ -14,6 +14,8 @@ declare global {
 
 interface AddressInputProps {
   value?: string;
+  state?: string;
+  country?: string;
   onChange?: (address: string, placeId: string, state: string, country: string) => void;
   label?: string;
   placeholder?: string;
@@ -22,6 +24,8 @@ interface AddressInputProps {
 
 export function AddressInput({
   value,
+  state: initialState,
+  country: initialCountry,
   onChange,
   label = 'Address',
   placeholder = 'Enter your address',
@@ -30,8 +34,8 @@ export function AddressInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const [autocomplete, setAutocomplete] = useState<any>(null);
   const [inputValue, setInputValue] = useState(value || '');
-  const [state, setState] = useState('');
-  const [country, setCountry] = useState('');
+  const [state, setState] = useState(initialState || '');
+  const [country, setCountry] = useState(initialCountry || '');
 
   useEffect(() => {
     if (!window.google) {
@@ -51,6 +55,15 @@ export function AddressInput({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (initialState) setState(initialState);
+    if (initialCountry) setCountry(initialCountry);
+  }, [initialState, initialCountry]);
+
+  useEffect(() => {
+    if (value) setInputValue(value);
+  }, [value]);
 
   const initializeAutocomplete = () => {
     if (inputRef.current && window.google) {
