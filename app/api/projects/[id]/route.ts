@@ -1,7 +1,7 @@
 import { getCurrentUser, hasRole } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import { ProjectStatus, UserRole } from '@prisma/client';
+import { ProjectStatus, UserRole, ContractStage } from '@prisma/client';
 import { z } from 'zod';
 
 const updateProjectSchema = z.object({
@@ -51,7 +51,7 @@ export async function GET(
             email: true,
           },
         },
-        proposals: {
+        bids: {
           include: {
             freelancer: {
               select: {
@@ -258,7 +258,7 @@ export async function DELETE(
     const project = await prisma.project.findUnique({
       where: { id: params.id },
       include: {
-        proposals: true,
+        bids: true,
         contracts: {
           include: {
             milestones: true,
@@ -285,7 +285,7 @@ export async function DELETE(
     
     // Check if project has contracts in progress
     const hasActiveContracts = project.contracts.some(
-      contract => contract.status === 'IN_PROGRESS' || contract.status === 'APPROVED'
+      contract => contract.stage === ContractStage.PAYMENT || contract.stage === ContractStage.REVIEW
     );
     
     if (hasActiveContracts) {
@@ -313,8 +313,8 @@ export async function DELETE(
       });
     }
     
-    // Delete proposals
-    await prisma.proposal.deleteMany({
+    // Delete bids
+    await prisma.bid.deleteMany({
       where: { projectId: params.id },
     });
     

@@ -74,6 +74,13 @@ enum ExperienceLevel {
   EXPERT
 }
 
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
 model User {
   id            String    @id @default(uuid())
   email         String    @unique
@@ -129,11 +136,13 @@ model User {
   // Client relations
   postedProjects      Project[]       @relation("ClientToProject")
   paymentsAsClient    Payment[]       @relation("ClientPayments")
+  invoicesAsClient    Invoice[]       @relation("ClientInvoices")
   
   // Freelancer relations
   bids                Bid[]
   contractsAsFreelancer Contract[] @relation("FreelancerToContract")
   paymentsAsFreelancer Payment[]   @relation("FreelancerPayments")
+  invoicesAsFreelancer Invoice[]   @relation("FreelancerInvoices")
   milestones          Milestone[]  @relation("FreelancerMilestones")
   
   // Common relations
@@ -232,6 +241,7 @@ model Contract {
   bid             Bid?          @relation(fields: [bidId], references: [id])
   milestones      Milestone[]
   payments        Payment[]
+  invoices        Invoice[]
   ratings         Rating[]
   
   @@map("contracts")
@@ -374,4 +384,23 @@ model Rating {
   @@index([contractId])
   @@index([ratedUserId])
   @@index([ratingUserId])
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  amount        Float
+  status        InvoiceStatus @default(PENDING)
+  dueDate       DateTime
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  // Relations
+  contractId    String
+  contract      Contract      @relation(fields: [contractId], references: [id])
+  clientId      String
+  client        User          @relation("ClientInvoices", fields: [clientId], references: [id])
+  freelancerId  String
+  freelancer    User          @relation("FreelancerInvoices", fields: [freelancerId], references: [id])
+
+  @@map("invoices")
 }

@@ -1,10 +1,10 @@
 import { getCurrentUser, hasRole } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import { ProposalStatus, UserRole } from '@prisma/client';
+import { BidStatus, UserRole } from '@prisma/client';
 import { z } from 'zod';
 
-const updateProposalSchema = z.object({
+const updateBidSchema = z.object({
   coverLetter: z.string().min(10).optional(),
   proposedBudget: z.number().positive().optional(),
   estimatedDays: z.number().int().positive().optional(),
@@ -15,8 +15,8 @@ const updateProposalSchema = z.object({
  * @swagger
  * /api/proposals/{id}:
  *   get:
- *     summary: Get proposal by ID
- *     description: Returns a specific proposal by its ID
+ *     summary: Get bid by ID
+ *     description: Returns a specific bid by its ID
  *     security:
  *       - cookieAuth: []
  *     parameters:
@@ -25,14 +25,14 @@ const updateProposalSchema = z.object({
  *         required: true
  *         schema:
  *           type: string
- *         description: Proposal ID
+ *         description: Bid ID
  *     responses:
  *       200:
- *         description: Proposal details
+ *         description: Bid details
  *       401:
  *         description: Not authenticated or unauthorized
  *       404:
- *         description: Proposal not found
+ *         description: Bid not found
  *       500:
  *         description: Internal server error
  */
@@ -50,7 +50,7 @@ export async function GET(
       );
     }
     
-    const proposal = await prisma.proposal.findUnique({
+    const bid = await prisma.bid.findUnique({
       where: { id: params.id },
       include: {
         project: {
@@ -83,28 +83,28 @@ export async function GET(
       },
     });
     
-    if (!proposal) {
+    if (!bid) {
       return NextResponse.json(
-        { error: 'Proposal not found' },
+        { error: 'Bid not found' },
         { status: 404 }
       );
     }
     
-    // Check if user is authorized to view this proposal
+    // Check if user is authorized to view this bid
     if (
-      proposal.freelancerId !== user.id &&
-      proposal.project.clientId !== user.id &&
+      bid.freelancerId !== user.id &&
+      bid.project.clientId !== user.id &&
       user.role !== UserRole.ADMIN
     ) {
       return NextResponse.json(
-        { error: 'You are not authorized to view this proposal' },
+        { error: 'You are not authorized to view this bid' },
         { status: 401 }
       );
     }
     
-    return NextResponse.json({ proposal }, { status: 200 });
+    return NextResponse.json({ bid }, { status: 200 });
   } catch (error) {
-    console.error('Error fetching proposal:', error);
+    console.error('Error fetching bid:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -116,8 +116,8 @@ export async function GET(
  * @swagger
  * /api/proposals/{id}:
  *   put:
- *     summary: Update proposal
- *     description: Updates a specific proposal
+ *     summary: Update bid
+ *     description: Updates a specific bid
  *     security:
  *       - cookieAuth: []
  *     parameters:
@@ -126,7 +126,7 @@ export async function GET(
  *         required: true
  *         schema:
  *           type: string
- *         description: Proposal ID
+ *         description: Bid ID
  *     requestBody:
  *       required: true
  *       content:
@@ -148,13 +148,13 @@ export async function GET(
  *                 enum: [PENDING, SHORTLISTED, ACCEPTED, REJECTED]
  *     responses:
  *       200:
- *         description: Proposal updated successfully
+ *         description: Bid updated successfully
  *       400:
  *         description: Invalid request data
  *       401:
  *         description: Not authenticated or unauthorized
  *       404:
- *         description: Proposal not found
+ *         description: Bid not found
  *       500:
  *         description: Internal server error
  */
@@ -172,83 +172,68 @@ export async function PUT(
       );
     }
     
-    const proposal = await prisma.proposal.findUnique({
+    // Find bid
+    const bid = await prisma.bid.findUnique({
       where: { id: params.id },
       include: {
         project: true,
+        freelancer: true,
       },
     });
     
-    if (!proposal) {
+    if (!bid) {
       return NextResponse.json(
-        { error: 'Proposal not found' },
+        { error: 'Bid not found' },
         { status: 404 }
+      );
+    }
+    
+    // Check if user is the freelancer who created the bid or admin
+    if (bid.freelancerId !== user.id && user.role !== UserRole.ADMIN) {
+      return NextResponse.json(
+        { error: 'You can only update your own bids' },
+        { status: 401 }
+      );
+    }
+    
+    // Can't update bid if it's already been accepted or rejected
+    if (
+      bid.status === BidStatus.ACCEPTED ||
+      bid.status === BidStatus.REJECTED
+    ) {
+      return NextResponse.json(
+        { error: 'Cannot update a bid that has been accepted or rejected' },
+        { status: 400 }
       );
     }
     
     const body = await request.json();
     
     // Validate request body
-    const result = updateProposalSchema.safeParse(body);
+    const result = updateBidSchema.safeParse(body);
     if (!result.success) {
       return NextResponse.json({ error: result.error.errors }, { status: 400 });
     }
     
     const { coverLetter, proposedBudget, estimatedDays, status } = result.data;
     
-    // Check permissions based on update type
-    if (status) {
-      // Only clients and admins can update status
-      if (
-        proposal.project.clientId !== user.id &&
-        user.role !== UserRole.ADMIN
-      ) {
-        return NextResponse.json(
-          { error: 'Only the client can update proposal status' },
-          { status: 401 }
-        );
-      }
-    } else {
-      // Only freelancers and admins can update proposal details
-      if (
-        proposal.freelancerId !== user.id &&
-        user.role !== UserRole.ADMIN
-      ) {
-        return NextResponse.json(
-          { error: 'Only the freelancer can update proposal details' },
-          { status: 401 }
-        );
-      }
-      
-      // Can't update proposal if it's already been accepted or rejected
-      if (
-        proposal.status === ProposalStatus.ACCEPTED ||
-        proposal.status === ProposalStatus.REJECTED
-      ) {
-        return NextResponse.json(
-          { error: 'Cannot update a proposal that has been accepted or rejected' },
-          { status: 400 }
-        );
-      }
-    }
-    
-    // Update proposal
-    const updatedProposal = await prisma.proposal.update({
+    // Update bid
+    const updatedBid = await prisma.bid.update({
       where: { id: params.id },
       data: {
         ...(coverLetter && { coverLetter }),
         ...(proposedBudget && { proposedBudget }),
         ...(estimatedDays && { estimatedDays }),
-        ...(status && { status: status as ProposalStatus }),
+        ...(status && { status: status as BidStatus }),
       },
     });
     
     return NextResponse.json(
-      { message: 'Proposal updated successfully', proposal: updatedProposal },
+      { message: 'Bid updated successfully', bid: updatedBid },
       { status: 200 }
     );
   } catch (error) {
-    console.error('Error updating proposal:', error);
+    console.error('Error updating bid:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

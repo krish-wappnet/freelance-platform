@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { authOptions } from "@/lib/auth.config";
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 

@@ -29,8 +29,7 @@ interface ProjectCardProps {
 export function ProjectCard({ project }: ProjectCardProps) {
   const handleViewBids = () => {
     // TODO: Implement view bids functionality
-    toast({
-      title: 'Coming Soon',
+    toast('Coming Soon', {
       description: 'View bids functionality will be available soon',
     });
   };

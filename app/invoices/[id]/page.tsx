@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { authOptions } from "@/lib/auth.config";
 import prisma from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
 import { InvoiceView } from "../../components/invoice/InvoiceView";

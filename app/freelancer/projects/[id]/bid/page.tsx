@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/client-auth';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import BidForm from '@/app/client/components/projects/BidForm';
 
 export default function BidPage() {
@@ -15,8 +15,8 @@ export default function BidPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const projectId = searchParams.get('projectId');
+  const params = useParams();
+  const projectId = params.id as string;
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -41,6 +41,8 @@ export default function BidPage() {
 
     if (projectId) {
       fetchProject();
+    } else {
+      router.push('/freelancer/dashboard');
     }
   }, [projectId, router, toast]);
 
@@ -52,7 +54,7 @@ export default function BidPage() {
     );
   }
 
-  if (!project) {
+  if (!project || !projectId) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
         <p className="text-lg font-medium">Project not found</p>

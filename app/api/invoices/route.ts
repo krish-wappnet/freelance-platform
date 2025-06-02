@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { authOptions } from "@/lib/auth.config";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
+import { InvoiceStatus } from "@prisma/client";
 
 // Schema for invoice creation
 const createInvoiceSchema = z.object({
   contractId: z.string(),
   amount: z.number(),
   dueDate: z.string(),
-  notes: z.string().optional(),
-  terms: z.string().optional(),
 });
 
 export async function POST(req: Request) {
@@ -22,9 +21,6 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const validatedData = createInvoiceSchema.parse(body);
-
-    // Generate a unique invoice number (you might want to customize this format)
-    const invoiceNumber = `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
     // Get contract details
     const contract = await prisma.contract.findUnique({
@@ -42,11 +38,9 @@ export async function POST(req: Request) {
     // Create the invoice
     const invoice = await prisma.invoice.create({
       data: {
-        invoiceNumber,
         amount: validatedData.amount,
         dueDate: new Date(validatedData.dueDate),
-        notes: validatedData.notes,
-        terms: validatedData.terms,
+        status: "PENDING",
         contractId: contract.id,
         clientId: contract.clientId,
         freelancerId: contract.freelancerId,
@@ -75,14 +69,14 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
-    const status = searchParams.get("status");
+    const status = searchParams.get("status") as InvoiceStatus | null;
 
     const where = {
       OR: [
-        { clientId: userId },
-        { freelancerId: userId },
+        { clientId: userId || undefined },
+        { freelancerId: userId || undefined },
       ],
-      ...(status && { status: status }),
+      ...(status && { status }),
     };
 
     const invoices = await prisma.invoice.findMany({

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { authOptions } from "@/lib/auth.config";
 import prisma from "@/lib/prisma";
 import PDFDocument from "pdfkit";
 
@@ -39,9 +39,10 @@ export async function GET(
     doc.moveDown();
     
     // Invoice details
-    doc.fontSize(12).text(`Invoice Number: ${invoice.invoiceNumber}`);
-    doc.text(`Date: ${new Date(invoice.issueDate).toLocaleDateString()}`);
+    doc.fontSize(12).text(`Invoice ID: ${invoice.id}`);
+    doc.text(`Date: ${new Date(invoice.createdAt).toLocaleDateString()}`);
     doc.text(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`);
+    doc.text(`Status: ${invoice.status}`);
     doc.moveDown();
 
     // From/To sections
@@ -60,16 +61,12 @@ export async function GET(
       .text(` $${invoice.amount.toFixed(2)}`, { align: "right" });
     doc.moveDown();
 
-    // Notes and Terms
-    if (invoice.notes) {
-      doc.text("Notes:");
-      doc.text(invoice.notes);
+    // Contract details
+    if (invoice.contract) {
+      doc.text("Contract Details:");
+      doc.text(`Title: ${invoice.contract.title}`);
+      doc.text(`Description: ${invoice.contract.description}`);
       doc.moveDown();
-    }
-
-    if (invoice.terms) {
-      doc.text("Terms & Conditions:");
-      doc.text(invoice.terms);
     }
 
     // Finalize the PDF
@@ -86,7 +83,7 @@ export async function GET(
     return new NextResponse(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="invoice-${invoice.invoiceNumber}.pdf"`,
+        "Content-Disposition": `attachment; filename="invoice-${invoice.id}.pdf"`,
       },
     });
   } catch (error) {

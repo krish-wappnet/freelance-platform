@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { authOptions } from '@/lib/auth.config';
 import { cloudinary } from '@/lib/cloudinary';
 
 const profileUpdateSchema = z.object({

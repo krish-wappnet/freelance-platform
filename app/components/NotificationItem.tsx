@@ -40,7 +40,8 @@ export function NotificationItem({ notification, onRead, onDelete }: Notificatio
     }
   };
 
-  const isPaymentRequest = notification.type === 'PAYMENT_REQUEST';
+  const isPaymentNotification = notification.type === NotificationType.PAYMENT_RECEIVED || 
+                              notification.type === NotificationType.PAYMENT_FAILED;
 
   return (
     <div className={cn(
@@ -52,7 +53,7 @@ export function NotificationItem({ notification, onRead, onDelete }: Notificatio
           <div className="flex items-start justify-between gap-2">
             <h3 className="font-medium text-sm">{notification.title}</h3>
             <div className="flex items-center gap-2 shrink-0">
-              {!notification.isRead && !isPaymentRequest && (
+              {!notification.isRead && !isPaymentNotification && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -80,7 +81,7 @@ export function NotificationItem({ notification, onRead, onDelete }: Notificatio
               <span className="text-sm font-medium text-green-600">
                 ${notification.amount.toFixed(2)}
               </span>
-              {isPaymentRequest && notification.referenceId && (
+              {isPaymentNotification && notification.referenceId && (
                 <PaymentButton
                   paymentId={notification.referenceId}
                   amount={notification.amount}

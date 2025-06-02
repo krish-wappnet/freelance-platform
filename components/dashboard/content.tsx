@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from 'react';
 import { 
   Card, 
   CardContent, 
@@ -18,6 +19,7 @@ import ProjectFormModal from '@/components/projects/project-form-modal';
 import Link from 'next/link';
 import ProjectList from '@/components/projects/project-list';
 import ContractList from '@/components/contracts/contract-list';
+import { Button } from '@/components/ui/button';
 
 interface DashboardContentProps {
   projects: any[];
@@ -32,6 +34,13 @@ interface DashboardContentProps {
 }
 
 export default function DashboardContent({ projects, contracts, stats, role }: DashboardContentProps) {
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+
+  const handleProjectCreated = (newProject: any) => {
+    // Refresh the projects list or add the new project to the list
+    // This will be implemented when we add state management
+  };
+
   return (
     <main className="flex-1 overflow-y-auto p-8">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -113,7 +122,9 @@ export default function DashboardContent({ projects, contracts, stats, role }: D
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Recent Projects</h2>
               {role === 'CLIENT' && (
-                <ProjectFormModal />
+                <Button onClick={() => setIsProjectModalOpen(true)}>
+                  Create Project
+                </Button>
               )}
               {role === 'FREELANCER' && (
                 <Link href="/projects" className="text-sm font-medium text-primary">
@@ -172,6 +183,12 @@ export default function DashboardContent({ projects, contracts, stats, role }: D
           </Card>
         </TabsContent>
       </Tabs>
+
+      <ProjectFormModal 
+        open={isProjectModalOpen}
+        onOpenChange={setIsProjectModalOpen}
+        onProjectCreated={handleProjectCreated}
+      />
     </main>
   );
 }
