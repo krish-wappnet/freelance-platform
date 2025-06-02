@@ -10,7 +10,7 @@ const profileUpdateSchema = z.object({
   // Personal Information
   name: z.string().min(2).optional(),
   phone: z.string().nullable().optional(),
-  website: z.string().url().nullable().optional(),
+  website: z.string().url().nullable().optional().or(z.literal('')),
   address: z.string().nullable().optional(),
   placeId: z.string().nullable().optional(),
   bio: z.string().nullable().optional(),

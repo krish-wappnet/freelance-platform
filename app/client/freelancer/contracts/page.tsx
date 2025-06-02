@@ -55,14 +55,17 @@ export default async function FreelancerContractsPage() {
     },
   });
 
-  const formattedContracts = contracts
-    .filter(contract => contract.bid !== null)
-    .map(contract => ({
-      ...contract,
-      createdAt: contract.createdAt.toISOString(),
-      updatedAt: contract.updatedAt.toISOString(),
-      bid: contract.bid!,
-    }));
+  // Ensure contracts is an array and has the required fields
+  const formattedContracts = Array.isArray(contracts) 
+    ? contracts
+        .filter(contract => contract.bid !== null)
+        .map(contract => ({
+          ...contract,
+          createdAt: contract.createdAt.toISOString(),
+          updatedAt: contract.updatedAt.toISOString(),
+          bid: contract.bid!,
+        }))
+    : [];
 
   return (
     <div className="container mx-auto py-8">

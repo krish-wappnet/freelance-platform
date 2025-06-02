@@ -5,10 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import debounce from 'lodash/debounce';
 
 declare global {
   interface Window {
     google: any;
+    googleMapsLoaded: boolean;
   }
 }
 
@@ -36,78 +38,105 @@ export function AddressInput({
   const [inputValue, setInputValue] = useState(value || '');
   const [state, setState] = useState(initialState || '');
   const [country, setCountry] = useState(initialCountry || '');
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
 
   const initializeAutocomplete = useCallback(() => {
-    if (inputRef.current && window.google) {
-      const autocompleteInstance = new window.google.maps.places.Autocomplete(inputRef.current, {
-        types: ['address'],
-        fields: ['formatted_address', 'place_id', 'address_components'],
-      });
+    if (!inputRef.current || !window.google || autocomplete) return;
 
-      // Remove Google branding
-      const pacContainer = document.querySelector('.pac-container');
-      if (pacContainer) {
-        pacContainer.setAttribute('style', 'display: none !important');
+    const autocompleteInstance = new window.google.maps.places.Autocomplete(inputRef.current, {
+      types: ['address'],
+      fields: ['formatted_address', 'place_id', 'address_components'],
+    });
+
+    autocompleteInstance.addListener('place_changed', () => {
+      const place = autocompleteInstance.getPlace();
+      if (place.formatted_address && onChange) {
+        const formattedAddress = place.formatted_address;
+        setInputValue(formattedAddress);
+        setSelectedPlaceId(place.place_id);
+        
+        // Extract state and country from address components
+        let stateName = '';
+        let countryName = '';
+        
+        place.address_components?.forEach((component: any) => {
+          if (component.types.includes('administrative_area_level_1')) {
+            stateName = component.long_name;
+          }
+          if (component.types.includes('country')) {
+            countryName = component.long_name;
+          }
+        });
+
+        setState(stateName);
+        setCountry(countryName);
+        onChange(formattedAddress, place.place_id, stateName, countryName);
       }
+    });
 
-      autocompleteInstance.addListener('place_changed', () => {
-        const place = autocompleteInstance.getPlace();
-        if (place.formatted_address && onChange) {
-          setInputValue(place.formatted_address);
-          
-          // Extract state and country from address components
-          let stateName = '';
-          let countryName = '';
-          
-          place.address_components?.forEach((component: any) => {
-            if (component.types.includes('administrative_area_level_1')) {
-              stateName = component.long_name;
-            }
-            if (component.types.includes('country')) {
-              countryName = component.long_name;
-            }
-          });
+    setAutocomplete(autocompleteInstance);
+  }, [onChange, autocomplete]);
 
-          setState(stateName);
-          setCountry(countryName);
-          onChange(place.formatted_address, place.place_id, stateName, countryName);
-        }
-      });
-
-      setAutocomplete(autocompleteInstance);
+  const loadGoogleMapsScript = useCallback(() => {
+    if (window.googleMapsLoaded) {
+      initializeAutocomplete();
+      return;
     }
-  }, [onChange]);
+
+    setIsLoading(true);
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      window.googleMapsLoaded = true;
+      setIsLoading(false);
+      initializeAutocomplete();
+    };
+    document.head.appendChild(script);
+  }, [initializeAutocomplete]);
 
   useEffect(() => {
-    if (!window.google) {
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
-      script.async = true;
-      script.defer = true;
-      script.onload = initializeAutocomplete;
-      document.head.appendChild(script);
-    } else {
-      initializeAutocomplete();
-    }
+    loadGoogleMapsScript();
 
     return () => {
       if (autocomplete) {
         window.google.maps.event.clearInstanceListeners(autocomplete);
       }
     };
-  }, [initializeAutocomplete, autocomplete]);
+  }, [loadGoogleMapsScript, autocomplete]);
 
+  // Only update state and country from props if they're different
   useEffect(() => {
-    if (initialState) setState(initialState);
-    if (initialCountry) setCountry(initialCountry);
-  }, [initialState, initialCountry]);
+    if (initialState && initialState !== state) setState(initialState);
+    if (initialCountry && initialCountry !== country) setCountry(initialCountry);
+  }, [initialState, initialCountry, state, country]);
 
+  // Only update input value from props if it's different and no place is selected
   useEffect(() => {
-    if (value) setInputValue(value);
-  }, [value]);
+    if (value && value !== inputValue && !selectedPlaceId) {
+      setInputValue(value);
+    }
+  }, [value, inputValue, selectedPlaceId]);
+
+  const debouncedInputChange = useCallback(
+    debounce((newValue: string) => {
+      setInputValue(newValue);
+      // Clear selected place when user types
+      if (selectedPlaceId) {
+        setSelectedPlaceId(null);
+        setState('');
+        setCountry('');
+        onChange?.('', '', '', '');
+      }
+    }, 300),
+    [selectedPlaceId, onChange]
+  );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
+    const newValue = e.target.value;
+    debouncedInputChange(newValue);
   };
 
   return (
@@ -121,11 +150,13 @@ export function AddressInput({
             type="text"
             value={inputValue}
             onChange={handleInputChange}
-            placeholder={placeholder}
+            placeholder={isLoading ? "Loading..." : placeholder}
+            disabled={isLoading}
             className={cn(
               "pl-9 w-full transition-all duration-200",
               "focus:ring-2 focus:ring-primary/20",
-              "placeholder:text-muted-foreground/50"
+              "placeholder:text-muted-foreground/50",
+              isLoading && "opacity-50"
             )}
           />
         </div>
