@@ -121,22 +121,22 @@ export default function FreelancerDashboard() {
   }
 
   return (
-    <div className="flex-1 space-y-8 p-8 pt-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Freelancer Dashboard</h1>
+    <div className="flex-1 space-y-6 p-4 md:p-8 md:space-y-8">
+      <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Freelancer Dashboard</h1>
         <div className="text-sm text-muted-foreground">
           Last updated: {format(new Date(), 'PPP')}
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
             <Briefcase className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalProjects || 0}</div>
+            <div className="text-xl md:text-2xl font-bold">{stats?.totalProjects || 0}</div>
             <p className="text-xs text-muted-foreground mt-1">
               {stats?.completedProjects || 0} completed
             </p>
@@ -181,49 +181,52 @@ export default function FreelancerDashboard() {
       </div>
 
       <Tabs defaultValue="earnings" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="earnings" className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4" />
-            Earnings
-          </TabsTrigger>
-          <TabsTrigger value="projects" className="flex items-center gap-2">
-            <Briefcase className="h-4 w-4" />
-            Projects
-          </TabsTrigger>
-          <TabsTrigger value="contracts" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Contracts
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="earnings" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Earnings Overview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FreelancerEarningsDashboard />
-            </CardContent>
-          </Card>
+        <div className="relative">
+          <TabsList className="w-full grid grid-cols-3 h-auto p-1 bg-muted/50 rounded-lg">
+            <TabsTrigger 
+              value="earnings" 
+              className="flex flex-col items-center justify-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
+            >
+              <DollarSign className="h-5 w-5" />
+              <span className="text-xs font-medium">Earnings</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="projects" 
+              className="flex flex-col items-center justify-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
+            >
+              <Briefcase className="h-5 w-5" />
+              <span className="text-xs font-medium">Projects</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="contracts" 
+              className="flex flex-col items-center justify-center gap-1.5 py-3 px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
+            >
+              <FileText className="h-5 w-5" />
+              <span className="text-xs font-medium">Contracts</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
+        <TabsContent value="earnings" className="mt-6">
+          <div className="overflow-x-auto rounded-lg border bg-card">
+            <Card>
+              <CardHeader>
+                <CardTitle>Earnings Overview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FreelancerEarningsDashboard />
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
-        <TabsContent value="projects" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Projects</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ProjectList projects={projects} role={UserRole.FREELANCER} />
-            </CardContent>
-          </Card>
+        <TabsContent value="projects" className="mt-6">
+          <div className="overflow-x-auto rounded-lg border bg-card">
+            <ProjectList projects={projects} role={UserRole.FREELANCER} />
+          </div>
         </TabsContent>
-        <TabsContent value="contracts" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Active Contracts</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ContractList contracts={contracts} />
-            </CardContent>
-          </Card>
+        <TabsContent value="contracts" className="mt-6">
+          <div className="overflow-x-auto rounded-lg border bg-card">
+            <ContractList contracts={contracts} />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

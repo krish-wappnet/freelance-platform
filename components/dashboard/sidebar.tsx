@@ -47,6 +47,7 @@ interface SidebarProps {
 export default function Sidebar({ user, role, activePath }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
   // Generate the appropriate nav items based on user role
@@ -119,13 +120,112 @@ export default function Sidebar({ user, role, activePath }: SidebarProps) {
     }
   }, [isCollapsed]);
 
+  // Mobile menu content component
+  const MobileMenuContent = () => (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-primary/10">
+            <Zap className="h-6 w-6 text-primary" />
+          </div>
+          <span className="text-xl font-bold">WorkWave</span>
+        </div>
+      </div>
+
+      <div className="flex items-center p-4 border-b">
+        <Avatar className="h-10 w-10 ring-2 ring-primary/10">
+          <AvatarImage src={user?.avatar || undefined} alt={user?.name || 'User'} />
+          <AvatarFallback className="bg-primary/10 text-primary">
+            {user?.name?.[0] || 'U'}
+          </AvatarFallback>
+        </Avatar>
+        <div className="ml-3">
+          <span className="font-medium">{user?.name || 'User'}</span>
+          <span className="block text-sm text-muted-foreground">
+            {role === 'CLIENT' ? 'Client' : 'Freelancer'}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex-1 py-2">
+        <div className="px-2">
+          <div className="space-y-1">
+            {navItems.map((item) => (
+              <Link
+                key={item.title}
+                href={item.href}
+                onClick={() => setIsOpen(false)}
+                className={cn(
+                  'flex items-center rounded-lg px-3 py-2 text-sm font-medium',
+                  pathname === item.href
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                )}
+              >
+                <div className={cn(
+                  "p-1.5 rounded-md",
+                  pathname === item.href ? "bg-primary/20" : "bg-transparent"
+                )}>
+                  {item.icon}
+                </div>
+                <span className="ml-3">{item.title}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t p-4">
+        <Button
+          variant="ghost"
+          className="flex items-center gap-2 w-full text-red-500 hover:text-red-600 hover:bg-red-50"
+          onClick={() => {
+            fetch('/api/auth/logout', { method: 'POST' })
+              .then(() => window.location.href = '/login')
+              .catch(err => console.error('Logout error:', err));
+          }}
+        >
+          <LogOut className="h-5 w-5" />
+          <span>Logout</span>
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <>
+      {/* Mobile Menu Trigger */}
+      <div className="md:hidden fixed top-0 left-0 z-[60] h-screen flex items-center">
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-12 w-6 rounded-r-lg bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-lg border border-l-0 hover:bg-accent"
+            >
+              {isOpen ? (
+                <ChevronLeft className="h-5 w-5" />
+              ) : (
+                <ChevronRight className="h-5 w-5" />
+              )}
+            </Button>
+          </SheetTrigger>
+          <SheetContent 
+            side="left" 
+            className="p-0 w-[280px] border-r"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+          >
+            <MobileMenuContent />
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      {/* Desktop Sidebar */}
       <div
         className={cn(
-          'fixed left-0 top-0 z-50 h-screen border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-300 ease-in-out shadow-lg',
+          'fixed left-0 top-0 z-40 h-screen border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-300 ease-in-out shadow-lg',
           isCollapsed ? 'w-[72px]' : 'w-64',
-          isMobile ? 'w-[72px] md:w-64' : ''
+          isMobile ? 'hidden md:block' : ''
         )}
       >
         <div className="flex h-full flex-col">
@@ -271,6 +371,18 @@ export default function Sidebar({ user, role, activePath }: SidebarProps) {
           </div>
         </div>
       </div>
+
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 md:hidden"
+          onClick={() => setIsOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Add padding to main content on mobile */}
+      <div className="md:hidden w-6" />
     </>
   );
 }

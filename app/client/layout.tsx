@@ -9,14 +9,23 @@ export default async function ClientLayout({
   children: React.ReactNode;
 }) {
   const user = await getCurrentUser();
+  
+  // Debug information
+  console.log('Client Layout - Auth Status:', {
+    isAuthenticated: !!user,
+    userRole: user?.role,
+    userId: user?.id,
+  });
 
   if (!user) {
+    console.log('Client Layout - Redirecting to login: No user found');
     redirect('/login');
   }
 
   // Optional: Redirect non-clients away from /client routes
   if (user.role !== 'CLIENT') {
-     redirect('/dashboard'); // Or show a forbidden page
+    console.log('Client Layout - Redirecting to dashboard: Invalid role', { role: user.role });
+    redirect('/dashboard');
   }
 
   return (
