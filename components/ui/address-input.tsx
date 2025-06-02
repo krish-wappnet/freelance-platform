@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MapPin } from 'lucide-react';
@@ -24,6 +24,9 @@ interface AddressInputProps {
   className?: string;
 }
 
+// Cache for script loading state
+let scriptLoadingPromise: Promise<void> | null = null;
+
 export function AddressInput({
   value,
   state: initialState,
@@ -34,36 +37,88 @@ export function AddressInput({
   className,
 }: AddressInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [autocomplete, setAutocomplete] = useState<any>(null);
+  const autocompleteRef = useRef<any>(null);
   const [inputValue, setInputValue] = useState(value || '');
   const [state, setState] = useState(initialState || '');
   const [country, setCountry] = useState(initialCountry || '');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [isManuallyEditing, setIsManuallyEditing] = useState(false);
-  const [scriptLoaded, setScriptLoaded] = useState(false);
+
+  // Memoize the autocomplete options
+  const autocompleteOptions = useMemo(() => ({
+    types: ['address'],
+    fields: ['formatted_address', 'place_id', 'address_components'],
+    componentRestrictions: { country: [] },
+  }), []);
+
+  const loadGoogleMapsScript = useCallback(() => {
+    if (window.googleMapsLoaded) {
+      return Promise.resolve();
+    }
+
+    if (scriptLoadingPromise) {
+      return scriptLoadingPromise;
+    }
+
+    if (document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]')) {
+      return new Promise<void>((resolve) => {
+        const checkLoaded = setInterval(() => {
+          if (window.googleMapsLoaded) {
+            clearInterval(checkLoaded);
+            resolve();
+          }
+        }, 100);
+      });
+    }
+
+    setIsLoading(true);
+
+    scriptLoadingPromise = new Promise((resolve, reject) => {
+      window.initGoogleMaps = () => {
+        window.googleMapsLoaded = true;
+        setIsLoading(false);
+        resolve();
+      };
+
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initGoogleMaps`;
+      script.async = true;
+      script.defer = true;
+      script.onerror = () => {
+        console.error('Failed to load Google Maps script');
+        setIsLoading(false);
+        reject(new Error('Failed to load Google Maps script'));
+      };
+
+      document.head.appendChild(script);
+    });
+
+    return scriptLoadingPromise;
+  }, []);
 
   const initializeAutocomplete = useCallback(() => {
-    if (!inputRef.current || !window.google || !scriptLoaded) return;
+    if (!inputRef.current || !window.google || !window.googleMapsLoaded) {
+      return;
+    }
 
     try {
-      // Clear any existing autocomplete instance
-      if (autocomplete) {
-        window.google.maps.event.clearInstanceListeners(autocomplete);
+      // Clear existing instance if any
+      if (autocompleteRef.current) {
+        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
       }
 
-      const autocompleteInstance = new window.google.maps.places.Autocomplete(inputRef.current, {
-        types: ['address'],
-        fields: ['formatted_address', 'place_id', 'address_components'],
-        componentRestrictions: { country: [] },
-      });
+      const autocompleteInstance = new window.google.maps.places.Autocomplete(
+        inputRef.current,
+        autocompleteOptions
+      );
 
-      // Prevent form submission on enter
       const preventSubmit = (e: KeyboardEvent) => {
         if (e.key === 'Enter') {
           e.preventDefault();
         }
       };
+
       inputRef.current.addEventListener('keydown', preventSubmit);
 
       autocompleteInstance.addListener('place_changed', () => {
@@ -88,24 +143,25 @@ export function AddressInput({
             }
           });
 
-          // Update all states at once
-          setInputValue(formattedAddress);
-          setState(stateName);
-          setCountry(countryName);
-          setSelectedPlaceId(place.place_id);
-          setIsManuallyEditing(false);
+          // Batch state updates
+          requestAnimationFrame(() => {
+            setInputValue(formattedAddress);
+            setState(stateName);
+            setCountry(countryName);
+            setSelectedPlaceId(place.place_id);
+            setIsManuallyEditing(false);
 
-          if (onChange) {
-            onChange(formattedAddress, place.place_id, stateName, countryName);
-          }
+            if (onChange) {
+              onChange(formattedAddress, place.place_id, stateName, countryName);
+            }
+          });
         } catch (error) {
           console.error('Error handling place selection:', error);
         }
       });
 
-      setAutocomplete(autocompleteInstance);
+      autocompleteRef.current = autocompleteInstance;
 
-      // Cleanup function
       return () => {
         if (inputRef.current) {
           inputRef.current.removeEventListener('keydown', preventSubmit);
@@ -117,52 +173,26 @@ export function AddressInput({
     } catch (error) {
       console.error('Error initializing autocomplete:', error);
     }
-  }, [onChange, autocomplete, scriptLoaded]);
-
-  const loadGoogleMapsScript = useCallback(() => {
-    if (window.googleMapsLoaded) {
-      setScriptLoaded(true);
-      return;
-    }
-
-    if (document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]')) {
-      // Script is already loading
-      return;
-    }
-
-    setIsLoading(true);
-
-    // Define the callback function
-    window.initGoogleMaps = () => {
-      window.googleMapsLoaded = true;
-      setScriptLoaded(true);
-      setIsLoading(false);
-    };
-
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initGoogleMaps`;
-    script.async = true;
-    script.defer = true;
-    script.onerror = () => {
-      console.error('Failed to load Google Maps script');
-      setIsLoading(false);
-    };
-
-    document.head.appendChild(script);
-  }, []);
+  }, [onChange, autocompleteOptions]);
 
   useEffect(() => {
-    loadGoogleMapsScript();
-  }, [loadGoogleMapsScript]);
+    let cleanup: (() => void) | undefined;
 
-  useEffect(() => {
-    if (scriptLoaded) {
-      const cleanup = initializeAutocomplete();
-      return () => {
-        if (cleanup) cleanup();
-      };
-    }
-  }, [scriptLoaded, initializeAutocomplete]);
+    const init = async () => {
+      try {
+        await loadGoogleMapsScript();
+        cleanup = initializeAutocomplete();
+      } catch (error) {
+        console.error('Error initializing address input:', error);
+      }
+    };
+
+    init();
+
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [loadGoogleMapsScript, initializeAutocomplete]);
 
   // Update state and country from props only if not manually editing
   useEffect(() => {
@@ -183,28 +213,28 @@ export function AddressInput({
     }
   }, [value, inputValue, isManuallyEditing]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
     setIsManuallyEditing(true);
 
-    // Clear all fields if input is empty
     if (newValue === '') {
-      setSelectedPlaceId(null);
-      setState('');
-      setCountry('');
-      if (onChange) {
-        onChange('', '', '', '');
-      }
+      requestAnimationFrame(() => {
+        setSelectedPlaceId(null);
+        setState('');
+        setCountry('');
+        if (onChange) {
+          onChange('', '', '', '');
+        }
+      });
     }
-  };
+  }, [onChange]);
 
-  const handleInputBlur = () => {
-    // Reset manual editing state after a short delay
+  const handleInputBlur = useCallback(() => {
     setTimeout(() => {
       setIsManuallyEditing(false);
     }, 200);
-  };
+  }, []);
 
   return (
     <div className={cn("space-y-4", className)}>
