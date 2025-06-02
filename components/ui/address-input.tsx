@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import debounce from 'lodash/debounce';
 
 declare global {
   interface Window {
@@ -47,30 +46,46 @@ export function AddressInput({
     const autocompleteInstance = new window.google.maps.places.Autocomplete(inputRef.current, {
       types: ['address'],
       fields: ['formatted_address', 'place_id', 'address_components'],
+      componentRestrictions: { country: [] }, // Allow all countries
+    });
+
+    // Prevent form submission on enter
+    inputRef.current.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+      }
     });
 
     autocompleteInstance.addListener('place_changed', () => {
       const place = autocompleteInstance.getPlace();
-      if (place.formatted_address && onChange) {
-        const formattedAddress = place.formatted_address;
-        setInputValue(formattedAddress);
-        setSelectedPlaceId(place.place_id);
-        
-        // Extract state and country from address components
-        let stateName = '';
-        let countryName = '';
-        
-        place.address_components?.forEach((component: any) => {
-          if (component.types.includes('administrative_area_level_1')) {
-            stateName = component.long_name;
-          }
-          if (component.types.includes('country')) {
-            countryName = component.long_name;
-          }
-        });
+      
+      if (!place.formatted_address) {
+        return;
+      }
 
-        setState(stateName);
-        setCountry(countryName);
+      const formattedAddress = place.formatted_address;
+      let stateName = '';
+      let countryName = '';
+      
+      // Extract state and country from address components
+      place.address_components?.forEach((component: any) => {
+        const types = component.types;
+        if (types.includes('administrative_area_level_1')) {
+          stateName = component.long_name;
+        }
+        if (types.includes('country')) {
+          countryName = component.long_name;
+        }
+      });
+
+      // Update all states at once to prevent flickering
+      setInputValue(formattedAddress);
+      setState(stateName);
+      setCountry(countryName);
+      setSelectedPlaceId(place.place_id);
+
+      // Call onChange with all the updated values
+      if (onChange) {
         onChange(formattedAddress, place.place_id, stateName, countryName);
       }
     });
@@ -107,36 +122,36 @@ export function AddressInput({
     };
   }, [loadGoogleMapsScript, autocomplete]);
 
-  // Only update state and country from props if they're different
+  // Update state and country from props only if they're different
   useEffect(() => {
-    if (initialState && initialState !== state) setState(initialState);
-    if (initialCountry && initialCountry !== country) setCountry(initialCountry);
-  }, [initialState, initialCountry, state, country]);
+    if (initialState !== state) {
+      setState(initialState || '');
+    }
+    if (initialCountry !== country) {
+      setCountry(initialCountry || '');
+    }
+  }, [initialState, initialCountry]);
 
-  // Only update input value from props if it's different and no place is selected
+  // Update input value from props only if it's different and no place is selected
   useEffect(() => {
     if (value && value !== inputValue && !selectedPlaceId) {
       setInputValue(value);
     }
   }, [value, inputValue, selectedPlaceId]);
 
-  const debouncedInputChange = useCallback(
-    debounce((newValue: string) => {
-      setInputValue(newValue);
-      // Clear selected place when user types
-      if (selectedPlaceId) {
-        setSelectedPlaceId(null);
-        setState('');
-        setCountry('');
-        onChange?.('', '', '', '');
-      }
-    }, 300),
-    [selectedPlaceId, onChange]
-  );
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    debouncedInputChange(newValue);
+    setInputValue(newValue);
+    
+    // Clear selection only if user manually types something different
+    if (selectedPlaceId && newValue !== inputValue) {
+      setSelectedPlaceId(null);
+      setState('');
+      setCountry('');
+      if (onChange) {
+        onChange('', '', '', '');
+      }
+    }
   };
 
   return (
