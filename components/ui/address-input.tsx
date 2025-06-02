@@ -39,6 +39,7 @@ export function AddressInput({
   const [country, setCountry] = useState(initialCountry || '');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
+  const [isManuallyEditing, setIsManuallyEditing] = useState(false);
 
   const initializeAutocomplete = useCallback(() => {
     if (!inputRef.current || !window.google || autocomplete) return;
@@ -46,7 +47,7 @@ export function AddressInput({
     const autocompleteInstance = new window.google.maps.places.Autocomplete(inputRef.current, {
       types: ['address'],
       fields: ['formatted_address', 'place_id', 'address_components'],
-      componentRestrictions: { country: [] }, // Allow all countries
+      componentRestrictions: { country: [] },
     });
 
     // Prevent form submission on enter
@@ -67,7 +68,6 @@ export function AddressInput({
       let stateName = '';
       let countryName = '';
       
-      // Extract state and country from address components
       place.address_components?.forEach((component: any) => {
         const types = component.types;
         if (types.includes('administrative_area_level_1')) {
@@ -78,13 +78,12 @@ export function AddressInput({
         }
       });
 
-      // Update all states at once to prevent flickering
       setInputValue(formattedAddress);
       setState(stateName);
       setCountry(countryName);
       setSelectedPlaceId(place.place_id);
+      setIsManuallyEditing(false);
 
-      // Call onChange with all the updated values
       if (onChange) {
         onChange(formattedAddress, place.place_id, stateName, countryName);
       }
@@ -122,29 +121,32 @@ export function AddressInput({
     };
   }, [loadGoogleMapsScript, autocomplete]);
 
-  // Update state and country from props only if they're different
+  // Update state and country from props only if not manually editing
   useEffect(() => {
-    if (initialState !== state) {
-      setState(initialState || '');
+    if (!isManuallyEditing) {
+      if (initialState !== state) {
+        setState(initialState || '');
+      }
+      if (initialCountry !== country) {
+        setCountry(initialCountry || '');
+      }
     }
-    if (initialCountry !== country) {
-      setCountry(initialCountry || '');
-    }
-  }, [initialState, initialCountry]);
+  }, [initialState, initialCountry, isManuallyEditing]);
 
-  // Update input value from props only if it's different and no place is selected
+  // Update input value from props only if not manually editing
   useEffect(() => {
-    if (value && value !== inputValue && !selectedPlaceId) {
+    if (!isManuallyEditing && value && value !== inputValue) {
       setInputValue(value);
     }
-  }, [value, inputValue, selectedPlaceId]);
+  }, [value, inputValue, isManuallyEditing]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
-    
-    // Clear selection only if user manually types something different
-    if (selectedPlaceId && newValue !== inputValue) {
+    setIsManuallyEditing(true);
+
+    // Clear all fields if input is empty
+    if (newValue === '') {
       setSelectedPlaceId(null);
       setState('');
       setCountry('');
@@ -152,6 +154,13 @@ export function AddressInput({
         onChange('', '', '', '');
       }
     }
+  };
+
+  const handleInputBlur = () => {
+    // Reset manual editing state after a short delay
+    setTimeout(() => {
+      setIsManuallyEditing(false);
+    }, 200);
   };
 
   return (
@@ -165,6 +174,7 @@ export function AddressInput({
             type="text"
             value={inputValue}
             onChange={handleInputChange}
+            onBlur={handleInputBlur}
             placeholder={isLoading ? "Loading..." : placeholder}
             disabled={isLoading}
             className={cn(
