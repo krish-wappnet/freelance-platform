@@ -12,10 +12,11 @@ interface SidebarClientProps {
     avatar?: string | null;
   };
   role: 'CLIENT' | 'FREELANCER';
+  onNavigate?: () => void;
 }
 
-export default function SidebarClient({ user, role }: SidebarClientProps) {
+export default function SidebarClient({ user, role, onNavigate }: SidebarClientProps) {
   const pathname = usePathname();
 
-  return <Sidebar user={user} role={role} activePath={pathname} />;
+  return <Sidebar user={user} role={role} activePath={pathname} onNavigate={onNavigate} />;
 }

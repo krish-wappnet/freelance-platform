@@ -42,9 +42,10 @@ interface SidebarProps {
   };
   role: 'CLIENT' | 'FREELANCER';
   activePath: string;
+  onNavigate?: () => void;
 }
 
-export default function Sidebar({ user, role, activePath }: SidebarProps) {
+export default function Sidebar({ user, role, activePath, onNavigate }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -192,6 +193,40 @@ export default function Sidebar({ user, role, activePath }: SidebarProps) {
     </div>
   );
 
+  // Update the Link components to use onNavigate
+  const NavLink = ({ item }: { item: NavItem }) => (
+    <Link
+      href={item.href}
+      onClick={onNavigate}
+      className={cn(
+        'group flex items-center rounded-lg px-2 py-1.5 text-sm font-medium transition-all duration-300',
+        activePath === item.href
+          ? 'bg-primary/10 text-primary'
+          : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+        isCollapsed ? 'justify-center' : 'justify-start'
+      )}
+    >
+      <div className={cn(
+        "p-1.5 rounded-md transition-all duration-300",
+        activePath === item.href ? "bg-primary/20" : "bg-transparent group-hover:bg-background/50",
+        isCollapsed ? "p-1.5" : "p-1.5"
+      )}>
+        {React.cloneElement(item.icon, { 
+          className: cn(
+            'transition-all duration-300',
+            isCollapsed ? 'h-5 w-5' : 'h-5 w-5'
+          )
+        })}
+      </div>
+      <span className={cn(
+        "transition-all duration-300",
+        isCollapsed ? "w-0 opacity-0 ml-0" : "w-auto opacity-100 ml-2"
+      )}>
+        {item.title}
+      </span>
+    </Link>
+  );
+
   return (
     <>
       {/* Mobile Menu Trigger */}
@@ -301,36 +336,7 @@ export default function Sidebar({ user, role, activePath }: SidebarProps) {
             )}>
               <div className="space-y-0.5">
                 {navItems.map((item) => (
-                  <Link
-                    key={item.title}
-                    href={item.href}
-                    className={cn(
-                      'group flex items-center rounded-lg px-2 py-1.5 text-sm font-medium transition-all duration-300',
-                      pathname === item.href
-                        ? 'bg-primary/10 text-primary'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                      isCollapsed ? 'justify-center' : 'justify-start'
-                    )}
-                  >
-                    <div className={cn(
-                      "p-1.5 rounded-md transition-all duration-300",
-                      pathname === item.href ? "bg-primary/20" : "bg-transparent group-hover:bg-background/50",
-                      isCollapsed ? "p-1.5" : "p-1.5"
-                    )}>
-                      {React.cloneElement(item.icon, { 
-                        className: cn(
-                          'transition-all duration-300',
-                          isCollapsed ? 'h-5 w-5' : 'h-5 w-5'
-                        )
-                      })}
-                    </div>
-                    <span className={cn(
-                      "transition-all duration-300",
-                      isCollapsed ? "w-0 opacity-0 ml-0" : "w-auto opacity-100 ml-2"
-                    )}>
-                      {item.title}
-                    </span>
-                  </Link>
+                  <NavLink key={item.title} item={item} />
                 ))}
               </div>
             </div>

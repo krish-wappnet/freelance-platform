@@ -214,99 +214,84 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="container max-w-6xl py-6 px-4">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground mt-2">Manage your account settings and preferences.</p>
+    <div className="space-y-6">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight">Settings</h1>
+        <p className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">Manage your account settings and preferences.</p>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-8">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[500px] bg-muted/50 p-1">
-          <TabsTrigger value="profile" className="data-[state=active]:bg-background">Profile</TabsTrigger>
-          <TabsTrigger value="security" className="data-[state=active]:bg-background">Security</TabsTrigger>
-          <TabsTrigger value="notifications" className="data-[state=active]:bg-background">Notifications</TabsTrigger>
-          <TabsTrigger value="preferences" className="data-[state=active]:bg-background">Preferences</TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="profile" className="space-y-6 md:space-y-8">
+        <div className="overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
+          <TabsList className="inline-flex h-auto p-1 bg-muted/50 rounded-lg w-auto min-w-full md:min-w-[500px] md:w-[500px]">
+            <TabsTrigger 
+              value="profile" 
+              className="flex-1 md:flex-none data-[state=active]:bg-background py-3 px-4 text-sm md:text-base rounded-md flex items-center justify-center gap-2"
+            >
+              <User className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="hidden sm:inline">Profile</span>
+              <span className="sm:hidden">Profile</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="security" 
+              className="flex-1 md:flex-none data-[state=active]:bg-background py-3 px-4 text-sm md:text-base rounded-md flex items-center justify-center gap-2"
+            >
+              <Shield className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="hidden sm:inline">Security</span>
+              <span className="sm:hidden">Security</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="notifications" 
+              className="flex-1 md:flex-none data-[state=active]:bg-background py-3 px-4 text-sm md:text-base rounded-md flex items-center justify-center gap-2"
+            >
+              <Bell className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="hidden sm:inline">Notifications</span>
+              <span className="sm:hidden">Notif</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="preferences" 
+              className="flex-1 md:flex-none data-[state=active]:bg-background py-3 px-4 text-sm md:text-base rounded-md flex items-center justify-center gap-2"
+            >
+              <Palette className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="hidden sm:inline">Preferences</span>
+              <span className="sm:hidden">Prefs</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        <TabsContent value="profile" className="space-y-8">
+        <TabsContent value="profile" className="space-y-6 md:space-y-8">
           <Card className="border-none shadow-lg">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl">Profile Information</CardTitle>
-              <CardDescription>
+            <CardHeader className="space-y-1 p-4 md:p-6">
+              <CardTitle className="text-xl md:text-2xl">Profile Information</CardTitle>
+              <CardDescription className="text-sm md:text-base">
                 Update your profile information and how others see you on the platform.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleProfileUpdate} className="space-y-8">
-                <div className="flex items-center gap-8 p-6 bg-muted/30 rounded-lg border border-border/50">
-                  <div className="relative group">
-                    <Avatar className="h-32 w-32 border-4 border-background shadow-lg transition-transform duration-200 group-hover:scale-105">
+            <CardContent className="p-4 md:p-6">
+              <form onSubmit={handleProfileUpdate} className="space-y-6 md:space-y-8">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-8 p-4 md:p-6 bg-muted/30 rounded-lg border border-border/50">
+                  <div className="relative group mx-auto md:mx-0">
+                    <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-background shadow-lg transition-transform duration-200 group-hover:scale-105">
                       <AvatarImage src={formData.profileImage || undefined} alt={formData.name || 'User'} />
-                      <AvatarFallback className="text-3xl bg-primary/10">{formData.name?.[0] || 'U'}</AvatarFallback>
+                      <AvatarFallback className="text-2xl md:text-3xl bg-primary/10">{formData.name?.[0] || 'U'}</AvatarFallback>
                     </Avatar>
                     {isUploading && (
                       <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-full">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <Loader2 className="h-6 w-6 md:h-8 md:w-8 animate-spin text-primary" />
                       </div>
                     )}
                   </div>
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <h3 className="text-lg font-medium">Profile Picture</h3>
-                      <p className="text-sm text-muted-foreground">
+                  <div className="space-y-3 w-full md:w-auto">
+                    <div className="space-y-1 text-center md:text-left">
+                      <h3 className="text-base md:text-lg font-medium">Profile Picture</h3>
+                      <p className="text-xs md:text-sm text-muted-foreground">
                         Upload a professional photo to help others recognize you.
                       </p>
                     </div>
-                    <input
-                      type="file"
-                      id="avatar-upload"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setIsUploading(true);
-                          const formData = new FormData();
-                          formData.append('file', file);
-                          formData.append('profileData', JSON.stringify({}));
-                          
-                          try {
-                            const response = await fetch('/api/profile', {
-                              method: 'PATCH',
-                              body: formData,
-                              credentials: 'include',
-                            });
-                            
-                            if (response.ok) {
-                              const data = await response.json();
-                              setFormData(prev => ({
-                                ...prev,
-                                profileImage: data.profile.profileImage
-                              }));
-                              toast({
-                                title: "Avatar updated",
-                                description: "Your profile picture has been updated successfully.",
-                              });
-                            } else {
-                              throw new Error('Failed to update avatar');
-                            }
-                          } catch (error) {
-                            toast({
-                              title: "Error",
-                              description: "Failed to update avatar. Please try again.",
-                              variant: "destructive",
-                            });
-                          } finally {
-                            setIsUploading(false);
-                          }
-                        }
-                      }}
-                    />
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="gap-2"
+                        className="gap-2 w-full sm:w-auto"
                         type="button"
                         onClick={() => document.getElementById('avatar-upload')?.click()}
                         disabled={isUploading}
@@ -327,7 +312,7 @@ export default function SettingsPage() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="gap-2 text-destructive hover:text-destructive/90"
+                          className="gap-2 text-destructive hover:text-destructive/90 w-full sm:w-auto"
                           type="button"
                           onClick={() => {
                             setFormData(prev => ({ ...prev, profileImage: '' }));
@@ -343,7 +328,7 @@ export default function SettingsPage() {
                         </Button>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground text-center md:text-left">
                       JPG, GIF or PNG. Max size of 2MB.
                     </p>
                   </div>
@@ -351,7 +336,7 @@ export default function SettingsPage() {
 
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Personal Information</h3>
+                    <h3 className="text-base md:text-lg font-medium">Personal Information</h3>
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="name">Full Name</Label>
@@ -409,7 +394,7 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Company Information</h3>
+                    <h3 className="text-base md:text-lg font-medium">Company Information</h3>
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="companyName">Company Name</Label>
@@ -464,7 +449,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-6">
-                  <h3 className="text-lg font-medium">About</h3>
+                  <h3 className="text-base md:text-lg font-medium">About</h3>
                   <div className="grid gap-6 md:grid-cols-2">
                     <div className="space-y-4">
                       <div className="space-y-2">
@@ -495,7 +480,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="flex justify-end">
-                  <Button type="submit" disabled={isLoading} size="lg" className="gap-2">
+                  <Button type="submit" disabled={isLoading} size="lg" className="w-full sm:w-auto gap-2">
                     {isLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -516,13 +501,13 @@ export default function SettingsPage() {
 
         <TabsContent value="security" className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Security Settings</CardTitle>
-              <CardDescription>
+            <CardHeader className="p-4 md:p-6">
+              <CardTitle className="text-xl md:text-2xl">Security Settings</CardTitle>
+              <CardDescription className="text-sm md:text-base">
                 Manage your password and security preferences.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 md:p-6">
               <form onSubmit={handlePasswordChange} className="space-y-6">
                 <div className="space-y-4">
                   <div className="space-y-2">
@@ -551,7 +536,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-0.5">
                       <Label>Two-Factor Authentication</Label>
                       <p className="text-sm text-muted-foreground">
@@ -561,7 +546,7 @@ export default function SettingsPage() {
                     <Switch />
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-0.5">
                       <Label>Login Notifications</Label>
                       <p className="text-sm text-muted-foreground">
@@ -572,7 +557,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <Button type="submit" disabled={isLoading}>
+                <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
                   {isLoading ? 'Updating...' : 'Update Security Settings'}
                 </Button>
               </form>
@@ -582,16 +567,16 @@ export default function SettingsPage() {
 
         <TabsContent value="notifications" className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>
+            <CardHeader className="p-4 md:p-6">
+              <CardTitle className="text-xl md:text-2xl">Notification Preferences</CardTitle>
+              <CardDescription className="text-sm md:text-base">
                 Choose what notifications you want to receive.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 md:p-6">
               <div className="space-y-6">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-0.5">
                       <Label>Email Notifications</Label>
                       <p className="text-sm text-muted-foreground">
@@ -601,7 +586,7 @@ export default function SettingsPage() {
                     <Switch defaultChecked />
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-0.5">
                       <Label>Project Updates</Label>
                       <p className="text-sm text-muted-foreground">
@@ -611,7 +596,7 @@ export default function SettingsPage() {
                     <Switch defaultChecked />
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-0.5">
                       <Label>New Messages</Label>
                       <p className="text-sm text-muted-foreground">
@@ -621,7 +606,7 @@ export default function SettingsPage() {
                     <Switch defaultChecked />
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-0.5">
                       <Label>Payment Updates</Label>
                       <p className="text-sm text-muted-foreground">
@@ -632,7 +617,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <Button disabled={isLoading}>
+                <Button disabled={isLoading} className="w-full sm:w-auto">
                   {isLoading ? 'Saving...' : 'Save Preferences'}
                 </Button>
               </div>
@@ -642,16 +627,16 @@ export default function SettingsPage() {
 
         <TabsContent value="preferences" className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Preferences</CardTitle>
-              <CardDescription>
+            <CardHeader className="p-4 md:p-6">
+              <CardTitle className="text-xl md:text-2xl">Preferences</CardTitle>
+              <CardDescription className="text-sm md:text-base">
                 Customize your experience on the platform.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 md:p-6">
               <div className="space-y-6">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-0.5">
                       <Label>Dark Mode</Label>
                       <p className="text-sm text-muted-foreground">
@@ -664,42 +649,42 @@ export default function SettingsPage() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-0.5">
                       <Label>Language</Label>
                       <p className="text-sm text-muted-foreground">
                         Choose your preferred language.
                       </p>
                     </div>
-                    <select className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm">
+                    <select className="h-9 w-full sm:w-[200px] rounded-md border border-input bg-background px-3 py-1 text-sm">
                       <option value="en">English</option>
                       <option value="es">Spanish</option>
                       <option value="fr">French</option>
                     </select>
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-0.5">
                       <Label>Time Zone</Label>
                       <p className="text-sm text-muted-foreground">
                         Set your local time zone.
                       </p>
                     </div>
-                    <select className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm">
+                    <select className="h-9 w-full sm:w-[200px] rounded-md border border-input bg-background px-3 py-1 text-sm">
                       <option value="utc">UTC</option>
                       <option value="est">EST</option>
                       <option value="pst">PST</option>
                     </select>
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-0.5">
                       <Label>Currency</Label>
                       <p className="text-sm text-muted-foreground">
                         Set your preferred currency.
                       </p>
                     </div>
-                    <select className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm">
+                    <select className="h-9 w-full sm:w-[200px] rounded-md border border-input bg-background px-3 py-1 text-sm">
                       <option value="usd">USD ($)</option>
                       <option value="eur">EUR (€)</option>
                       <option value="gbp">GBP (£)</option>
@@ -707,7 +692,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <Button disabled={isLoading}>
+                <Button disabled={isLoading} className="w-full sm:w-auto">
                   {isLoading ? 'Saving...' : 'Save Preferences'}
                 </Button>
               </div>

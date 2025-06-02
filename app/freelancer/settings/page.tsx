@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -280,22 +281,54 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="container max-w-6xl py-6 px-4">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground mt-2">Manage your account settings and preferences.</p>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Settings</h1>
+        <p className="text-muted-foreground">Manage your account settings and preferences.</p>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-8">
-        <TabsList className="grid w-full grid-cols-5 lg:w-[600px] bg-muted/50 p-1">
-          <TabsTrigger value="profile" className="data-[state=active]:bg-background">Profile</TabsTrigger>
-          <TabsTrigger value="ratings" className="data-[state=active]:bg-background">Ratings</TabsTrigger>
-          <TabsTrigger value="security" className="data-[state=active]:bg-background">Security</TabsTrigger>
-          <TabsTrigger value="notifications" className="data-[state=active]:bg-background">Notifications</TabsTrigger>
-          <TabsTrigger value="preferences" className="data-[state=active]:bg-background">Preferences</TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="profile" className="space-y-6">
+        <div className="relative">
+          <TabsList className="w-full grid grid-cols-2 md:grid-cols-5 gap-2 p-1 bg-muted/50 rounded-lg overflow-x-auto">
+            <TabsTrigger 
+              value="profile" 
+              className="flex items-center gap-2 justify-center data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
+            >
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">Profile</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="ratings" 
+              className="flex items-center gap-2 justify-center data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
+            >
+              <Star className="h-4 w-4" />
+              <span className="hidden sm:inline">Ratings</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="security" 
+              className="flex items-center gap-2 justify-center data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
+            >
+              <Lock className="h-4 w-4" />
+              <span className="hidden sm:inline">Security</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="notifications" 
+              className="flex items-center gap-2 justify-center data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
+            >
+              <Bell className="h-4 w-4" />
+              <span className="hidden sm:inline">Notifications</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="preferences" 
+              className="flex items-center gap-2 justify-center data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
+            >
+              <Palette className="h-4 w-4" />
+              <span className="hidden sm:inline">Preferences</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        <TabsContent value="profile" className="space-y-8">
+        <TabsContent value="profile" className="space-y-6">
           <Card className="border-none shadow-lg">
             <CardHeader className="space-y-1">
               <CardTitle className="text-2xl">Profile Information</CardTitle>
@@ -305,8 +338,8 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleProfileUpdate} className="space-y-8">
-                <div className="flex items-center gap-8 p-6 bg-muted/30 rounded-lg border border-border/50">
-                  <div className="relative group">
+                <div className="flex flex-col md:flex-row items-start gap-6 p-6 bg-muted/30 rounded-lg border border-border/50">
+                  <div className="relative group mx-auto md:mx-0">
                     <Avatar className="h-32 w-32 border-4 border-background shadow-lg transition-transform duration-200 group-hover:scale-105">
                       <AvatarImage src={formData.profileImage || undefined} alt={formData.name || 'User'} />
                       <AvatarFallback className="text-3xl bg-primary/10">{formData.name?.[0] || 'U'}</AvatarFallback>
@@ -317,59 +350,59 @@ export default function SettingsPage() {
                       </div>
                     )}
                   </div>
-                  <div className="space-y-3">
+                  <div className="flex-1 space-y-3 text-center md:text-left">
                     <div className="space-y-1">
                       <h3 className="text-lg font-medium">Profile Picture</h3>
                       <p className="text-sm text-muted-foreground">
                         Upload a professional photo to help others recognize you.
                       </p>
                     </div>
-                    <input
-                      type="file"
-                      id="avatar-upload"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setIsUploading(true);
-                          const formData = new FormData();
-                          formData.append('file', file);
-                          formData.append('profileData', JSON.stringify({}));
-                          
-                          try {
-                            const response = await fetch('/api/profile', {
-                              method: 'PATCH',
-                              body: formData,
-                              credentials: 'include',
-                            });
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
+                      <input
+                        type="file"
+                        id="avatar-upload"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setIsUploading(true);
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            formData.append('profileData', JSON.stringify({}));
                             
-                            if (response.ok) {
-                              const data = await response.json();
-                              setFormData(prev => ({
-                                ...prev,
-                                profileImage: data.profile.profileImage
-                              }));
-                              toast({
-                                title: "Avatar updated",
-                                description: "Your profile picture has been updated successfully.",
+                            try {
+                              const response = await fetch('/api/profile', {
+                                method: 'PATCH',
+                                body: formData,
+                                credentials: 'include',
                               });
-                            } else {
-                              throw new Error('Failed to update avatar');
+                              
+                              if (response.ok) {
+                                const data = await response.json();
+                                setFormData(prev => ({
+                                  ...prev,
+                                  profileImage: data.profile.profileImage
+                                }));
+                                toast({
+                                  title: "Avatar updated",
+                                  description: "Your profile picture has been updated successfully.",
+                                });
+                              } else {
+                                throw new Error('Failed to update avatar');
+                              }
+                            } catch (error) {
+                              toast({
+                                title: "Error",
+                                description: "Failed to update avatar. Please try again.",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setIsUploading(false);
                             }
-                          } catch (error) {
-                            toast({
-                              title: "Error",
-                              description: "Failed to update avatar. Please try again.",
-                              variant: "destructive",
-                            });
-                          } finally {
-                            setIsUploading(false);
                           }
-                        }
-                      }}
-                    />
-                    <div className="flex gap-3">
+                        }}
+                      />
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -416,39 +449,42 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Personal Information</h3>
+                <div className="grid gap-8 md:grid-cols-2">
+                  <div className="space-y-6">
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-medium">Personal Information</h3>
+                      <p className="text-sm text-muted-foreground">Update your personal details.</p>
+                    </div>
                     <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Full Name</Label>
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
                           <Input
                             id="name"
                             value={formData.name}
                             onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                           />
-                    </div>
-                  </div>
+                        </div>
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
                           <Input
                             id="email"
                             type="email"
                             value={formData.email}
                             onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                           />
-                    </div>
-                  </div>
+                        </div>
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
                           <Input
                             id="phone"
                             type="tel"
@@ -456,13 +492,13 @@ export default function SettingsPage() {
                             value={formData.phone}
                             onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                           />
-                    </div>
-                  </div>
+                        </div>
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="website">Website</Label>
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-4 w-4 text-muted-foreground" />
+                      <div className="space-y-2">
+                        <Label htmlFor="website">Website</Label>
+                        <div className="flex items-center gap-2">
+                          <Globe className="h-4 w-4 text-muted-foreground" />
                           <Input
                             id="website"
                             type="url"
@@ -475,8 +511,11 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Professional Information</h3>
+                  <div className="space-y-6">
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-medium">Professional Information</h3>
+                      <p className="text-sm text-muted-foreground">Update your professional details.</p>
+                    </div>
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="hourlyRate">Hourly Rate (₹)</Label>
@@ -527,94 +566,102 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-6">
-                  <h3 className="text-lg font-medium">About</h3>
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-medium">About</h3>
+                    <p className="text-sm text-muted-foreground">Tell others about yourself and your experience.</p>
+                  </div>
                   <div className="grid gap-6 md:grid-cols-2">
                     <div className="space-y-4">
-                       <div className="space-y-2">
-                         <Label htmlFor="bio">Bio</Label>
-                         <Textarea
-                           id="bio"
-                           placeholder="Tell us about yourself"
-                           className="min-h-[120px] resize-none"
-                           value={formData.bio}
-                           onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
-                         />
-                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="bio">Bio</Label>
+                        <Textarea
+                          id="bio"
+                          placeholder="Tell us about yourself"
+                          className="min-h-[120px] resize-none"
+                          value={formData.bio}
+                          onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
+                        />
+                      </div>
 
-                       <div className="space-y-2">
-                         <Label htmlFor="experience">Experience</Label>
-                         <div className="flex items-center gap-2">
-                           <Briefcase className="h-4 w-4 text-muted-foreground" />
-                           <Textarea
-                             id="experience"
-                             placeholder="Describe your work experience"
-                             className="min-h-[120px] resize-none"
-                             value={formData.experience}
-                             onChange={(e) => setFormData(prev => ({ ...prev, experience: e.target.value }))}
-                           />
-                         </div>
-                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="experience">Experience</Label>
+                        <div className="flex items-center gap-2">
+                          <Briefcase className="h-4 w-4 text-muted-foreground" />
+                          <Textarea
+                            id="experience"
+                            placeholder="Describe your work experience"
+                            className="min-h-[120px] resize-none"
+                            value={formData.experience}
+                            onChange={(e) => setFormData(prev => ({ ...prev, experience: e.target.value }))}
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     <div className="space-y-4">
-                       <EducationInstitutionInput
-                         value={formData.collegeName}
-                         onChange={handleCollegeNameChange}
-                         label="College / University"
-                         placeholder="Enter college or university name"
-                       />
+                      <EducationInstitutionInput
+                        value={formData.collegeName}
+                        onChange={handleCollegeNameChange}
+                        label="College / University"
+                        placeholder="Enter college or university name"
+                      />
 
-                       <div className="space-y-2">
-                         <Label htmlFor="degreeName">Degree Name</Label>
-                         <div className="flex items-center gap-2">
-                           <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                           <Input
-                             id="degreeName"
-                             placeholder="e.g., Bachelor of Science"
-                             value={formData.degreeName}
-                             onChange={(e) => setFormData(prev => ({ ...prev, degreeName: e.target.value }))}
-                             className="h-10"
-                           />
-                         </div>
-                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="degreeName">Degree Name</Label>
+                        <div className="flex items-center gap-2">
+                          <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="degreeName"
+                            placeholder="e.g., Bachelor of Science"
+                            value={formData.degreeName}
+                            onChange={(e) => setFormData(prev => ({ ...prev, degreeName: e.target.value }))}
+                            className="h-10"
+                          />
+                        </div>
+                      </div>
 
-                       <div className="space-y-2">
-                          <Label htmlFor="certificationUpload">Certifications</Label>
-                           <div className="flex items-center gap-2">
-                             <Award className="h-4 w-4 text-muted-foreground" />
-                             <Input
-                               id="certificationUpload"
-                               type="file"
-                               multiple
-                               onChange={handleCertificationUpload}
-                               className="h-10 file:h-8 file:text-sm file:bg-muted file:border-none file:rounded-md file:px-3 file:mr-2"
-                             />
-                           </div>
-                           {certificationFiles.length > 0 && (
-                             <div className="mt-2 space-y-1">
-                               <p className="text-sm font-medium">Uploaded Files:</p>
-                               {certificationFiles.map((file, index) => (
-                                 <div key={index} className="flex items-center justify-between text-sm text-muted-foreground">
-                                   <span>{file.name}</span>
-                                   <Button
-                                     variant="ghost"
-                                     size="sm"
-                                     onClick={() => removeCertificationFile(index)}
-                                     className="text-destructive hover:text-destructive/90 p-1 h-auto"
-                                   >
-                                     <Trash2 className="h-3 w-3" />
-                                   </Button>
-                                 </div>
-                               ))}
-                             </div>
-                           )}
-                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="certificationUpload">Certifications</Label>
+                        <div className="flex items-center gap-2">
+                          <Award className="h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="certificationUpload"
+                            type="file"
+                            multiple
+                            onChange={handleCertificationUpload}
+                            className="h-10 file:h-8 file:text-sm file:bg-muted file:border-none file:rounded-md file:px-3 file:mr-2"
+                          />
+                        </div>
+                        {certificationFiles.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            <p className="text-sm font-medium">Uploaded Files:</p>
+                            {certificationFiles.map((file, index) => (
+                              <div key={index} className="flex items-center justify-between text-sm text-muted-foreground">
+                                <span>{file.name}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeCertificationFile(index)}
+                                  className="text-destructive hover:text-destructive/90 p-1 h-auto"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex justify-end">
-                  <Button type="submit" disabled={isLoading} size="lg" className="gap-2">
+                  <Button 
+                    type="submit" 
+                    disabled={isLoading} 
+                    size="lg" 
+                    className="gap-2 w-full md:w-auto"
+                  >
                     {isLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -626,7 +673,7 @@ export default function SettingsPage() {
                         Save Changes
                       </>
                     )}
-                </Button>
+                  </Button>
                 </div>
               </form>
             </CardContent>
@@ -643,13 +690,18 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               {authLoading || isLoadingRatings ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <span className="ml-2">Loading ratings...</span>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  {[...Array(4)].map((_, i) => (
+                    <Card key={i} className="bg-muted/30">
+                      <CardContent className="p-6">
+                        <Skeleton className="h-6 w-24 mb-4" />
+                        <Skeleton className="h-8 w-32" />
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               ) : (
                 <div className="space-y-8">
-                  {/* Rating Statistics Cards */}
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <Card className="bg-muted/30">
                       <CardContent className="p-6">
@@ -725,7 +777,6 @@ export default function SettingsPage() {
                     </Card>
                   </div>
 
-                  {/* Rating Distribution */}
                   <Card className="bg-muted/30">
                     <CardHeader>
                       <CardTitle className="text-lg">Rating Distribution</CardTitle>
@@ -759,7 +810,6 @@ export default function SettingsPage() {
                     </CardContent>
                   </Card>
 
-                  {/* Reviews List */}
                   <div className="space-y-6">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-medium">Recent Reviews</h3>
